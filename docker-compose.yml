@@ -1,0 +1,18 @@
+services:
+  twitch-drops-farmer:
+    build: .
+    image: twitch-drops-farmer:latest
+    container_name: twitch-drops-farmer
+    restart: unless-stopped
+    init: true
+    shm_size: 1gb # Chrome crashes with Docker's default 64 MB /dev/shm
+    ports:
+      - "8411:8411" # dashboard
+      - "6080:6080" # browser view (for logging in)
+    environment:
+      TZ: ${TZ:-Etc/UTC}
+      VNC_PASSWORD: ${VNC_PASSWORD:?Set VNC_PASSWORD in .env (see .env.example)}
+      # Hostnames you'll use to reach the dashboard (IP addresses always work).
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-tower,tower.local}
+    volumes:
+      - ${DATA_PATH:-/mnt/user/appdata/twitch-drops-farmer}:/data

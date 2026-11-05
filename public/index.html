@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drops Farmer</title>
+<style>
+  :root {
+    --bg: #f6f5f8; --panel: #ffffff; --text: #18161d; --muted: #6b6775; --line: #e4e1ea;
+    --accent: #7c4dff; --accent-soft: #efe9ff; --ok: #1f9d55; --warn: #c27c0e; --bad: #d64545;
+    --bar: #ece9f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111015; --panel: #1b1a21; --text: #ecebf0; --muted: #9a96a6; --line: #2c2a34;
+      --accent: #a68bff; --accent-soft: #2a2340; --ok: #4ccb84; --warn: #e3a84a; --bad: #ef6b6b; --bar: #2a2833; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 20px; margin: 0; flex: 1; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 10px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover, a.button:hover { border-color: var(--accent); }
+  a.button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 6px 12px; text-decoration: none; }
+  a.button[hidden] { display: none; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 12px; }
+  .pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .muted { color: var(--muted); }
+  .now { display: grid; gap: 12px; }
+  .now-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .now-head a { font-size: 18px; font-weight: 600; color: var(--text); }
+  .game { display: grid; grid-template-columns: auto 48px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; }
+  .game + .game { border-top: 1px solid var(--line); }
+  .game img { width: 48px; height: 64px; object-fit: cover; border-radius: 4px; background: var(--bar); }
+  .game .name { font-weight: 600; }
+  .game .order { display: flex; gap: 4px; }
+  .game .order button { padding: 2px 8px; }
+  .game input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .campaigns { grid-column: 2 / -1; display: grid; gap: 10px; }
+  .campaign { border-left: 3px solid var(--line); padding-left: 10px; }
+  .campaign.linked-no { border-left-color: var(--warn); }
+  .drop { display: grid; grid-template-columns: 28px 1fr 90px; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; }
+  .drop img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; background: var(--bar); }
+  .bar { height: 6px; background: var(--bar); border-radius: 3px; overflow: hidden; margin-top: 3px; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  .drop.done .bar > span { background: var(--ok); }
+  .drop .min { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .log { font: 12px/1.6 ui-monospace, Menlo, monospace; max-height: 260px; overflow: auto; }
+  .log .warn { color: var(--warn); } .log .error { color: var(--bad); } .log .success { color: var(--ok); }
+  .empty { padding: 24px 16px; text-align: center; }
+  label.toggle { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  a { color: var(--accent); }
+  @media (max-width: 560px) {
+    .game { grid-template-columns: auto 40px 1fr; }
+    .game .order { grid-column: 2 / -1; }
+    .game img { width: 40px; height: 54px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Drops Farmer</h1>
+    <span id="status" class="pill"><span class="dot"></span><span>Connecting…</span></span>
+    <label class="toggle"><input type="checkbox" id="autoclaim"> Auto-claim</label>
+    <a id="view" class="button" target="_blank" rel="noopener" hidden>Browser view</a>
+    <button id="refresh">Refresh now</button>
+    <button id="pause" class="primary">Pause</button>
+  </header>
+
+  <section class="card now" id="now"></section>
+
+  <h2>Games <span class="muted" style="text-transform:none;letter-spacing:0">· tick to farm, top = highest priority</span></h2>
+  <section class="card" style="padding:0" id="games"></section>
+
+  <h2>Activity</h2>
+  <section class="card log" id="log"></section>
+</main>
+<script>
+  let state = null;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeUrl = (u) => (/^https:\/\//.test(u ?? '') ? esc(u) : '');
+  const ago = (t) => { if (!t) return 'never'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : `${m} min ago`; };
+  const left = (iso) => { const ms = Date.parse(iso) - Date.now(); if (!(ms > 0)) return ''; const h = ms / 3.6e6; return h > 48 ? `${Math.round(h / 24)} days left` : `${Math.round(h)} h left`; };
+
+  async function post(path, body = {}) {
+    const res = await fetch('/api/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) alert((await res.json()).error ?? 'Request failed');
+  }
+
+  function selectedGames() {
+    return state.games.filter((g) => g.priority != null).sort((a, b) => a.priority - b.priority).map((g) => ({ id: g.id, name: g.name }));
+  }
+
+  function renderStatus() {
+    const s = $('status');
+    const labels = { starting: 'Starting', login: 'Login needed', refreshing: 'Refreshing', searching: 'Searching', watching: 'Farming', idle: 'Idle', paused: 'Paused' };
+    s.className = 'pill' + (state.phase === 'watching' ? ' ok' : ['login', 'idle', 'paused'].includes(state.phase) ? ' warn' : '');
+    s.lastElementChild.textContent = labels[state.phase] ?? state.phase;
+    $('pause').textContent = state.paused ? 'Resume' : 'Pause';
+    $('autoclaim').checked = state.autoClaim;
+    const view = $('view');
+    view.hidden = !state.browserViewPort;
+    if (state.browserViewPort) view.href = `${location.protocol}//${location.hostname}:${state.browserViewPort}/vnc.html?autoconnect=1&resize=scale`;
+  }
+
+  function dropRow(d) {
+    const pct = d.required ? Math.min(100, (d.current / d.required) * 100) : 0;
+    const done = d.claimed || (d.required && d.current >= d.required);
+    const status = d.claimed ? 'claimed' : done ? 'ready' : `${d.current}/${d.required} min`;
+    return `<div class="drop${done ? ' done' : ''}">
+      ${d.image ? `<img src="${safeUrl(d.image)}" alt="">` : '<img alt="">'}
+      <div>${esc(d.name)}<div class="bar"><span style="width:${pct}%"></span></div></div>
+      <div class="min">${status}</div></div>`;
+  }
+
+  function campaignBlock(c) {
+    const notLinked = c.accountConnected === false;
+    return `<div class="campaign${notLinked ? ' linked-no' : ''}">
+      <div><strong>${esc(c.name)}</strong> <span class="muted">· ${left(c.endAt)}${c.allowedChannels ? ` · ${c.allowedChannels} specific channels` : ''}</span></div>
+      ${notLinked ? `<div style="color:var(--warn)">Game account not linked; this campaign is skipped.${c.accountLinkURL ? ` <a href="${safeUrl(c.accountLinkURL)}" target="_blank" rel="noopener">Link account</a>` : ''}</div>` : ''}
+      ${c.drops.length ? c.drops.map(dropRow).join('') : c.detailsLoaded ? '' : '<div class="muted">Drop list loads once this game is selected.</div>'}
+    </div>`;
+  }
+
+  function renderNow() {
+    const w = state.watching;
+    const msg = state.message ? `<div class="muted">${esc(state.message)}</div>` : '';
+    if (!w) {
+      $('now').innerHTML = `<div class="now-head"><strong>Not watching anything</strong></div>${msg}
+        <div class="muted">Campaigns checked ${ago(state.lastCampaignRefresh)} · inventory checked ${ago(state.lastInventoryRefresh)}${state.user ? ` · logged in as ${esc(state.user.displayName ?? state.user.login)}` : ''}</div>`;
+      return;
+    }
+    const game = state.games.find((g) => g.id === w.gameId);
+    const camps = (game?.campaigns ?? []).filter((c) => w.campaignIds?.includes(c.id));
+    $('now').innerHTML = `<div class="now-head">
+        <a href="https://www.twitch.tv/${encodeURIComponent(w.login)}" target="_blank" rel="noopener">${esc(w.displayName)}</a>
+        <span class="muted">${esc(w.gameName ?? '')} · since ${new Date(w.since).toLocaleTimeString()}</span>
+        <span class="pill ${w.videoOk ? 'ok' : 'warn'}"><span class="dot"></span>${w.videoOk ? 'Video playing' : 'Video stalled'}</span>
+      </div>${msg}
+      ${camps.map(campaignBlock).join('')}
+      <div class="muted">Inventory checked ${ago(state.lastInventoryRefresh)}${state.user ? ` · logged in as ${esc(state.user.displayName ?? state.user.login)}` : ''}</div>`;
+  }
+
+  function renderGames() {
+    if (!state.games.length) {
+      $('games').innerHTML = `<div class="empty muted">${state.phase === 'login' ? 'Log in to Twitch to load campaigns.' : 'No active drop campaigns found yet.'}</div>`;
+      return;
+    }
+    const sel = selectedGames();
+    $('games').innerHTML = state.games.map((g) => {
+      const idx = sel.findIndex((s) => s.id === g.id);
+      const on = idx >= 0;
+      return `<div class="game" data-id="${esc(g.id)}">
+        <input type="checkbox" ${on ? 'checked' : ''} data-act="toggle" aria-label="Farm ${esc(g.name)}">
+        ${g.boxArtURL ? `<img src="${safeUrl(g.boxArtURL)}" alt="">` : '<img alt="">'}
+        <div><div class="name">${on ? `${idx + 1}. ` : ''}${esc(g.name)}</div>
+          <div class="muted">${g.campaigns.length} active campaign${g.campaigns.length === 1 ? '' : 's'}</div></div>
+        <div class="order">${on ? `<button data-act="up" ${idx === 0 ? 'disabled' : ''} aria-label="Higher priority">↑</button><button data-act="down" ${idx === sel.length - 1 ? 'disabled' : ''} aria-label="Lower priority">↓</button>` : ''}</div>
+        ${on && g.campaigns.length ? `<div class="campaigns">${g.campaigns.map(campaignBlock).join('')}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function renderLog() {
+    const el = $('log');
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+    el.innerHTML = state.log.map((l) => `<div class="${l.level}"><span class="muted">${new Date(l.t).toLocaleTimeString()}</span> ${esc(l.msg)}</div>`).join('') || '<div class="muted">Nothing yet.</div>';
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  }
+
+  function render() { renderStatus(); renderNow(); renderGames(); renderLog(); }
+
+  $('games').addEventListener('click', (e) => {
+    const act = e.target.dataset.act;
+    const id = e.target.closest('.game')?.dataset.id;
+    if (!act || !id) return;
+    let sel = selectedGames();
+    const i = sel.findIndex((g) => g.id === id);
+    if (act === 'toggle') {
+      sel = i >= 0 ? sel.filter((g) => g.id !== id) : [...sel, { id, name: state.games.find((g) => g.id === id).name }];
+    } else {
+      const j = act === 'up' ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= sel.length) return;
+      [sel[i], sel[j]] = [sel[j], sel[i]];
+    }
+    post('games', { games: sel });
+  });
+  $('refresh').onclick = () => post('refresh');
+  $('pause').onclick = () => post(state?.paused ? 'resume' : 'pause');
+  $('autoclaim').onchange = (e) => post('autoclaim', { enabled: e.target.checked });
+
+  const events = new EventSource('/api/events');
+  events.onmessage = (e) => { state = JSON.parse(e.data); render(); };
+  events.onerror = () => { $('status').className = 'pill warn'; $('status').lastElementChild.textContent = 'Disconnected'; };
+  setInterval(() => state && renderNow(), 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run smoke
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t twitch-drops-farmer .
+      - name: Start container and check dashboard and browser view
+        run: |
+          docker run -d --name farmer --shm-size=1g -e VNC_PASSWORD=ci-test -p 8411:8411 -p 6080:6080 twitch-drops-farmer
+          for i in $(seq 1 60); do
+            if curl -sf localhost:8411/api/state | grep -q '"phase":"login"'; then ok=1; break; fi
+            sleep 2
+          done
+          docker logs farmer
+          [ "${ok:-}" = 1 ] || { echo "Dashboard never reached the login phase"; exit 1; }
+          curl -sf localhost:6080/vnc.html > /dev/null || { echo "Browser view not reachable"; exit 1; }
+          docker exec farmer sh -c 'ps aux | grep -E "[c]hrome" | head -1'
