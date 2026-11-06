@@ -30,8 +30,15 @@ const browser = new TwitchBrowser({
 const loginHint = runtime.browserViewPort
   ? 'Open the browser view (button above) and log in to Twitch there. Your login is saved for next time.'
   : 'Twitch refuses logins in this automated window. Close it, run the login step (login.command or login.bat), then start the app again.';
-const farmer = new Farmer({ browser, store, config, log, loginHint, onChange: () => broadcast() });
+const farmer = new Farmer({ browser, store, config, log, loginHint, onChange: () => broadcast(), onGameFound: addGameToConfig });
 store.onChange = () => broadcast();
+
+function addGameToConfig(game) {
+  if (config.games.some((g) => g.id === game.id)) return log(`${game.name} is already selected.`);
+  config.games.push(game);
+  saveConfig(config);
+  log(`Added ${game.name}.`);
+}
 
 function snapshot() {
   const now = Date.now();
@@ -61,7 +68,7 @@ function snapshot() {
           claimed: d.claimed,
         })),
       }));
-    return { id, name: game.name ?? id, boxArtURL: game.boxArtURL, priority: selected.get(id) ?? null, campaigns };
+    return { id, name: game.name ?? id, boxArtURL: game.boxArtURL, priority: selected.get(id) ?? null, dormant: farmer.dormant.get(id) ?? null, campaigns };
   });
   games.sort((a, b) => (a.priority ?? 1e9) - (b.priority ?? 1e9) || a.name.localeCompare(b.name));
 
@@ -98,6 +105,11 @@ const actions = {
     saveConfig(config);
     log(config.games.length ? `Farming order: ${config.games.map((g) => g.name).join(' → ')}` : 'No games selected.');
     farmer.wake({ refresh: true });
+  },
+  addgame(body) {
+    const name = String(body.name ?? '').trim();
+    if (!name) throw new Error('Enter a game name');
+    farmer.addGame(name);
   },
   autoclaim(body) {
     config.autoClaim = !!body.enabled;

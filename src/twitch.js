@@ -136,12 +136,26 @@ export class TwitchBrowser extends EventEmitter {
       .sort((a, b) => b.viewers - a.viewers);
   }
 
+  // Resolves a game's name to its Twitch id, for games with no campaign to list them.
+  async lookupGame(name) {
+    await this.#visit(`/directory/game/${encodeURIComponent(name)}`, 3000);
+    const slug = new URL(this.helper.url()).pathname.match(/^\/directory\/category\/([^/]+)/)?.[1];
+    if (!slug) return null;
+    const game = [...this.store.games.values()].find((g) => g.slug === decodeURIComponent(slug));
+    return game ? { id: game.id, name: game.name } : null;
+  }
+
   // Opens a channel page (video blocked) to see if it's live in the given game.
   async isChannelLive(login, gameId) {
     const since = Date.now();
     await this.#visit(`/${encodeURIComponent(login)}`, 3000);
     const info = this.store.channels.get(login);
     return !!info && info.seenAt >= since && info.live && (!info.gameId || info.gameId === gameId);
+  }
+
+  // Leaves Twitch's pages so nothing keeps running during a dormant wait.
+  async clearHelper() {
+    await this.helper.goto('about:blank').catch(() => {});
   }
 
   // ---- player tab ----

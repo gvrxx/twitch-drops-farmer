@@ -14,6 +14,7 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 - [Install on Unraid (Docker)](#install-on-unraid-docker)
 - [First-time setup](#first-time-setup)
 - [Using the dashboard](#using-the-dashboard)
+- [Dormant mode](#dormant-mode)
 - [Check that it works](#check-that-it-works)
 - [Stop, start and update](#stop-start-and-update)
 - [Troubleshooting](#troubleshooting)
@@ -21,21 +22,24 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 - [How it works](#how-it-works)
 - [Uninstall](#uninstall)
 - [Development](#development)
+- [Project history](docs/PROJECT-HISTORY.md)
 
 ## Project status
 
-This is early software and it hasn't been tried with a real Twitch account yet.
+The full cycle works on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. Windows and Docker need more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
 
 | Part | Status |
 | --- | --- |
-| App starts and reaches the Twitch login step on Windows, macOS and Linux | Passes automated tests |
-| Docker image builds, starts Chrome and serves the dashboard and browser view | Passes automated tests, not yet tried on Unraid |
-| Finding live Drops streams and playing them muted at 160p | Tested on live Twitch, on macOS only |
-| Logging in to Twitch | Refused in the automated window, so sign-in now happens in a normal browser. The saved session carrying over isn't confirmed on Twitch yet. Docker has no way to do this yet. |
-| Reading your campaigns and progress, and claiming drops | **Not tested on a real account** |
+| Signing in with a normal browser, then the app reusing that login | Works on macOS |
+| Reading campaigns, drop lists and progress | Works on macOS |
+| Finding live Drops streams and playing them muted at 160p | Works on macOS |
+| Earning watch time and auto-claiming drops | Works on macOS |
+| Dormant mode and adding games with no event | Works on macOS. A full 24-hour wait is covered by automated tests, not waited out live. |
+| Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
+| Docker | Builds and starts in automated tests. **You can't sign in there yet**, and it hasn't run on Unraid. |
 | Running for days without a restart | **Not tested** |
 
-Start with [Check that it works](#check-that-it-works) before relying on it.
+Your account is still at risk, as noted above. Twitch refuses logins in automated browsers, so it may also reject the saved session in future.
 
 ## What you need
 
@@ -73,15 +77,20 @@ You can also use the LTS installer from [nodejs.org](https://nodejs.org). Close 
 3. Click **Code → Download ZIP**.
 4. Right-click the ZIP, choose **Extract All**, and pick a folder such as `C:\Tools`.
 
-### 3. Start it
+### 3. Sign in to Twitch
+
+Twitch refuses logins in the app's automated browser, so you sign in once in a normal window first.
 
 1. Open the extracted `twitch-drops-farmer-main` folder.
-2. Double-click `start.bat`.
-3. If you see **Windows protected your PC**, click **More info → Run anyway**.
+2. Double-click `login.bat`. If you see **Windows protected your PC**, click **More info → Run anyway**.
+3. Log in to Twitch in the Microsoft Edge window that opens, including any 2FA or cookie prompts. It has its own profile, so your normal Edge logins aren't touched.
+4. Close that Edge window. The black terminal window will say `Done`, and you can close it too.
 
-The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a separate Microsoft Edge window opens on the Twitch login page. It uses its own profile, so your normal Edge logins aren't touched.
+### 4. Start it
 
-Keep the black terminal window open while it runs, then continue with [First-time setup](#first-time-setup).
+Double-click `start.bat`. The first start takes a few minutes while it installs dependencies and downloads Chromium.
+
+When it's done, the dashboard opens in your web browser and an Edge window opens with a banner saying it's being controlled by automated software. That's expected. Keep that window and the black terminal window open, then continue with [First-time setup](#first-time-setup).
 
 ### Keep the PC awake
 
@@ -108,25 +117,35 @@ Also install [Google Chrome](https://www.google.com/chrome/) in your Application
 3. Click **Code → Download ZIP**.
 4. Double-click the ZIP in your Downloads folder to unzip it.
 
-### 3. Start it
+### 3. Sign in to Twitch
 
-Open **Terminal** and run:
+Twitch refuses logins in the app's automated browser, so you sign in once in a normal window first. Open **Terminal** and run these two commands:
 
 ```bash
 cd ~/Downloads/twitch-drops-farmer-main
 ```
 
 ```bash
-bash start.command
+bash login.command
 ```
 
 If you put the folder somewhere else, change the first command to match.
 
-Running it this way avoids the macOS block on downloaded scripts. If you'd rather double-click `start.command`, macOS may refuse the first time. To allow it, go to **System Settings → Privacy & Security** and choose **Open Anyway**.
+1. Log in to Twitch in the Chrome window that opens, including any 2FA or cookie prompts. It has its own profile, so you need to log in there even if your normal Chrome is signed in.
+2. Click that window and press `Cmd+Q`. Closing the window isn't enough. If your normal Chrome is open too, make sure you quit the sign-in one.
+3. Wait for Terminal to say `Done`.
 
-The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a separate Chrome window opens on the Twitch login page. It uses its own profile, so you need to log in there even if you're signed in to your normal Chrome.
+### 4. Start it
 
-Keep the Terminal window open while it runs, then continue with [First-time setup](#first-time-setup).
+In the same Terminal window, run:
+
+```bash
+bash start.command
+```
+
+Running these scripts with `bash` avoids the macOS block on downloaded scripts. The first start takes a few minutes while it installs dependencies and downloads Chromium.
+
+When it's done, the dashboard opens in your web browser and a Chrome window opens with a banner saying it's being controlled by automated software. That's expected. Keep that window and Terminal open, then continue with [First-time setup](#first-time-setup).
 
 ### Keep the Mac awake
 
@@ -154,9 +173,13 @@ npx playwright install --with-deps chromium
 npm start
 ```
 
-The `--with-deps` step installs the system libraries Chromium needs and may ask for your password. Open http://127.0.0.1:8411 yourself, then continue with [First-time setup](#first-time-setup).
+The `--with-deps` step installs the system libraries Chromium needs and may ask for your password.
+
+Sign in with Google Chrome or Chromium installed on your system. Stop the app, run `npm run login`, log in, close the browser, then run `npm start` again. Open http://127.0.0.1:8411 yourself and continue with [First-time setup](#first-time-setup).
 
 ## Install on Unraid (Docker)
+
+> **Not usable yet:** Twitch refuses logins in automated browsers, and the browser view is one. Until there's a way to sign in normally inside the container, you can't log in here. Everything below is ready for when that's solved.
 
 The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor. It uses two ports:
 
@@ -193,7 +216,7 @@ The container appears in Unraid's **Docker** tab and restarts on its own after a
 1. Open `http://<unraid-ip>:8411`.
 2. Click **Browser view** and enter your password. Only its first 8 characters count.
 3. Log in to Twitch in the Chrome window you see there.
-4. Continue from step 2 of [First-time setup](#first-time-setup).
+4. Continue with [First-time setup](#first-time-setup).
 
 ### Using Docker Compose instead
 
@@ -220,17 +243,11 @@ docker compose up -d --build
 
 ## First-time setup
 
-These steps are the same on every system.
+These steps are the same on every system, once you've signed in and started the app as described in your install guide.
 
-1. **Log in to Twitch.** Twitch refuses logins in the automated window, so sign in with a normal browser window instead:
-   1. Stop the app if it's running.
-   2. Double-click `login.bat` on Windows. On macOS, run `bash login.command` in Terminal.
-   3. Log in to Twitch in the window that opens, including any 2FA or cookie prompts.
-   4. Close the browser fully. On macOS, press `Cmd+Q`. Closing the window isn't enough.
-   5. Start the app again. Your login is saved, so you normally do this once per install.
-2. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
-3. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first.
-4. **Link any game accounts.** If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
+1. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
+2. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first. For a game with no event right now, type its name in the **Add game** box.
+3. **Link any game accounts.** Most campaigns need this. If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
 
 The farmer now starts on its own. Leave that browser window open: closing it stops the app. If you minimise it, check that the dashboard still shows **Video playing**.
 
@@ -246,12 +263,14 @@ Open http://127.0.0.1:8411 on the computer running the app, or `http://<unraid-i
 | **Refreshing** | Loading your campaigns or inventory. |
 | **Searching** | Looking for a live stream that counts. |
 | **Farming** | Watching a stream. The channel and drop progress are shown below. |
-| **Idle** | Nothing to do right now. It checks again every 5 minutes. |
+| **Idle** | A selected game has drops, but no eligible stream is live. It checks again every 5 minutes. |
+| **Dormant** | None of your selected games have drops to earn. See [Dormant mode](#dormant-mode). |
 | **Paused** | You paused it. |
 
 | Control | What it does |
 | --- | --- |
 | Checkbox and ↑/↓ arrows | Choose which games to farm and in what order. |
+| **Add game** | Adds a game that isn't listed. Use its exact Twitch name. |
 | **Refresh now** | Reloads campaigns and inventory immediately. |
 | **Pause / Resume** | Stops or restarts watching. The app stays open. |
 | **Auto-claim** | Turns automatic claiming on or off. |
@@ -259,11 +278,28 @@ Open http://127.0.0.1:8411 on the computer running the app, or `http://<unraid-i
 
 **Activity** at the bottom shows what the app has been doing. Check it first if something looks wrong.
 
+## Dormant mode
+
+You can leave a game selected even when it has no event. A selected game goes dormant when there's nothing to earn, and the dashboard shows the reason and the next check time:
+
+| Reason | What to do |
+| --- | --- |
+| **No active event** | Nothing. It wakes when an event starts. |
+| **All drops earned** | Nothing. It wakes when a new event starts. |
+| **Game account not linked** | Click **Link account**, then **Refresh now**. |
+
+- **Other games keep going.** If another selected game has drops, the app keeps farming that one. Dormant games are skipped, and the app notices a new event for them at its regular 30-minute campaign check.
+- **When every selected game is dormant,** the app stops watching and leaves Twitch's pages. It rechecks every 24 hours.
+- **Announced events are caught early.** If Twitch lists an upcoming event for a game, the app checks 5 minutes after it starts instead of waiting out the 24 hours.
+- **Check right away** with **Refresh now**.
+
+The app and its browser window must stay open for rechecks to happen. Dormant state isn't saved, so restarting the app checks again immediately.
+
 ## Check that it works
 
 Do this once before leaving it running:
 
-1. Pick one game with an active campaign, ideally a drop that needs little watch time.
+1. Pick one game with an active campaign that isn't marked **Game account not linked**, ideally with a drop that needs little watch time.
 2. Check that the game shows **1 active campaign** or more, and that its drops are listed.
 3. Wait until the status shows **Farming** and **Video playing**.
 4. Leave it for 15 minutes.
@@ -299,13 +335,16 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | Problem | What to try |
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
-| Twitch says your browser isn't supported at login | Twitch refuses logins in automated browsers. Stop the app, then follow step 1 of [First-time setup](#first-time-setup). |
-| App still says **Login needed** after signing in | Quit the login browser fully, then start the app again. If that doesn't help, stop the app, delete `browser-profile`, and sign in again. |
+| Twitch says your browser isn't supported at login | Twitch refuses logins in automated browsers. Stop the app, run `login.bat` or `bash login.command`, sign in there, then start the app again. |
+| App says **Login needed** | The saved login is missing or expired. Stop the app and run the sign-in step again. If that doesn't help, delete `browser-profile` and repeat it. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |
 | `EADDRINUSE` error | Another copy is running, or another program uses port 8411. Close it, or change the port (see [Settings](#settings)). |
 | Error about the profile being in use | A browser window from an earlier run is still open. Close it and start again. |
-| No games appear | Make sure you're logged in, then click **Refresh now** and wait a minute. If it's still empty, Twitch may have changed its pages. |
+| No games appear | Make sure you're signed in, then click **Refresh now** and wait a minute. If it's still empty, Twitch may have changed its pages. |
+| Almost everything says **Game account not linked** | This is normal. Link only the games you play. |
+| "Couldn't find" a game in **Activity** | Use the exact name from the game's Twitch category page. |
+| A game stays **Dormant** though an event has started | Click **Refresh now**. If it's still dormant, check the reason shown next to the game. |
 | "Drop list loads once this game is selected" stays visible | Tick the game and click **Refresh now**. If it stays, the farmer still watches a drops-enabled stream for that game. |
 | **Game account not linked** | Click **Link account**, connect the account, then click **Refresh now**. |
 | **Video stalled**, or streams never play | Use a browser you already have, as shown below. |
@@ -342,10 +381,12 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 
 ## How it works
 
+- **Signing in:** you log in yourself in a normal browser window, with no automation attached. The app doesn't try to hide that it's automated; it reuses the login saved in its profile.
 - **Campaigns and progress:** the farmer opens your Drops Campaigns and Inventory pages in a background tab and reads the data the site loads there. It never calls Twitch's private API itself. That tab blocks video, so it never counts as a second viewer.
 - **Choosing a stream:** for the highest-priority game with something left to earn, it searches the game's directory using the "Drops enabled" filter. If a campaign only counts specific channels, it picks one of those.
 - **Watching:** every 30 seconds it checks that the video is moving and the stream is still in the right category. A stuck player is reloaded once, and after that the channel is skipped for 15 minutes. After 25 minutes with no progress, the channel is skipped for an hour.
 - **Claiming:** every 5 minutes it reloads your inventory and clicks any **Claim** buttons.
+- **Dormant games:** selected games with nothing to earn are set aside and rechecked. See [Dormant mode](#dormant-mode).
 
 Your Twitch login stays in `browser-profile/` on your machine. Treat that folder like a password, and don't share it. It's excluded from Git.
 
@@ -380,6 +421,6 @@ npm test
 npm run smoke
 ```
 
-`npm test` runs the parser unit tests. `npm run smoke` starts the app with a throwaway profile and checks that it reaches the login step.
+`npm test` runs the unit tests for the parser and dormant mode. `npm run smoke` starts the app with a throwaway profile and checks that it reaches the login step.
 
 CI runs both on macOS, Windows and Linux on every push. It also builds the Docker image and checks that the container reaches the login step.

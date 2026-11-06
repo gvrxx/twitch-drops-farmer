@@ -54,6 +54,22 @@ test('only active, linked campaigns with unfinished drops are farmable', () => {
   assert.deepEqual(store.pendingDrops(store.campaigns.get('c1')).map((d) => d.id), ['d1']);
 });
 
+test('campaigns with placeholder drops still count as farmable', () => {
+  const store = new Store();
+  store.ingest({
+    data: {
+      currentUser: {
+        id: '1',
+        login: 'me',
+        dropCampaigns: [
+          { id: 'c1', status: 'ACTIVE', endAt: '2099-01-01T00:00:00Z', game: RUST, self: { isAccountConnected: true }, timeBasedDrops: [{ id: 'd1', __typename: 'TimeBasedDrop' }], __typename: 'DropCampaign' },
+        ],
+      },
+    },
+  });
+  assert.deepEqual(store.farmableCampaigns('263490').map((c) => c.id), ['c1']);
+});
+
 test('channel allow-lists are matched case-insensitively', () => {
   const store = seeded();
   const c1 = store.campaigns.get('c1');

@@ -2,22 +2,28 @@ const MIN = 60_000;
 const HEALTH_CHECK_MS = 30_000;
 const STALL_MS = 25 * MIN; // no progress for this long on a channel -> try another
 const MAX_ALLOWLIST_PROBES = 8;
+const DORMANT_RECHECK_MS = 24 * 60 * MIN;
+const DORMANT_POLL_MS = 60 * MIN; // wakes hourly so a sleeping computer can't stretch the wait
+const CAMPAIGN_START_GRACE_MS = 5 * MIN; // lets Twitch mark a new campaign active
 
 export class Farmer {
   paused = false;
-  phase = 'starting'; // starting | login | refreshing | searching | watching | idle | paused
+  phase = 'starting'; // starting | login | refreshing | searching | watching | idle | dormant | paused
   message = '';
   watching = null; // { login, displayName, gameId, campaignIds, since, progressAtStart, lastVideoTime, badChecks, reloaded }
   lastCampaignRefresh = 0;
   lastInventoryRefresh = 0;
+  dormant = new Map(); // gameId -> { reason, nextCheckAt } for selected games with nothing to farm
   #bad = new Map(); // login -> time until which we avoid it
   #wakeFn = null;
   #woken = false;
   #forceRefresh = true;
   #claimPending = false;
+  #gameLookups = []; // names waiting to be resolved in the helper tab
 
-  constructor({ browser, store, config, log, loginHint, onChange }) {
+  constructor({ browser, store, config, log, loginHint, onChange, onGameFound }) {
     this.loginHint = loginHint;
+    this.onGameFound = onGameFound;
     this.browser = browser;
     this.store = store;
     this.config = config;
@@ -34,6 +40,12 @@ export class Farmer {
     if (refresh) this.#forceRefresh = true;
     this.#woken = true;
     this.#wakeFn?.();
+  }
+
+  // Queued because the helper tab can only do one thing at a time.
+  addGame(name) {
+    this.#gameLookups.push(name);
+    this.wake();
   }
 
   setPaused(paused) {
@@ -78,6 +90,7 @@ export class Farmer {
   async #tick() {
     this.#woken = false;
     if (!(await this.browser.isLoggedIn())) await this.#waitForLogin();
+    await this.#resolveGameLookups();
 
     if (this.paused) {
       await this.#stopWatching();
@@ -86,7 +99,7 @@ export class Farmer {
       return;
     }
 
-    await this.#refreshIfDue();
+    const forced = await this.#refreshIfDue();
 
     if (this.config.games.length === 0) {
       await this.#stopWatching();
@@ -95,9 +108,17 @@ export class Farmer {
       return;
     }
 
+    this.#updateDormant(forced);
     const target = await this.#pickTarget();
     if (!target) {
       await this.#stopWatching();
+      if (this.#allDormant()) {
+        await this.browser.clearHelper();
+        const next = this.#nextDormantCheck();
+        this.#setPhase('dormant', `Your selected games have no drops to earn right now. Next check: ${formatTime(next)}.`);
+        await this.#sleep(Math.min(DORMANT_POLL_MS, next - Date.now()));
+        return;
+      }
       this.#setPhase('idle', 'No live drops-enabled streams for your selected games right now. Checking again in 5 minutes.');
       await this.#sleep(5 * MIN);
       return;
@@ -121,6 +142,20 @@ export class Farmer {
     await this.#watchUntilNextRefresh();
   }
 
+  async #resolveGameLookups() {
+    while (this.#gameLookups.length) {
+      const name = this.#gameLookups.shift();
+      this.#setPhase('searching', `Looking up ${name}…`);
+      const game = await this.browser.lookupGame(name);
+      if (game) {
+        this.onGameFound(game);
+        this.#forceRefresh = true;
+      } else {
+        this.log(`Couldn't find "${name}" on Twitch. Use the game's exact name from its Twitch category page.`, 'warn');
+      }
+    }
+  }
+
   async #waitForLogin() {
     this.watching = null;
     this.#setPhase('login', this.loginHint);
@@ -132,9 +167,12 @@ export class Farmer {
     await this.browser.stopWatching();
   }
 
+  // Returns true when this refresh was requested rather than scheduled.
   async #refreshIfDue() {
     const now = Date.now();
-    const force = this.#forceRefresh;
+    const dormantUntil = this.#allDormant() ? this.#nextDormantCheck() : null;
+    if (dormantUntil && now < dormantUntil && !this.#forceRefresh && !this.#claimPending) return false;
+    const force = this.#forceRefresh || dormantUntil != null;
     this.#forceRefresh = false;
 
     if (force || now - this.lastCampaignRefresh > this.config.campaignRefreshMinutes * MIN) {
@@ -155,6 +193,41 @@ export class Farmer {
       this.lastInventoryRefresh = Date.now();
     }
     if (this.phase === 'refreshing') this.#setPhase(this.watching ? 'watching' : 'searching');
+    return force;
+  }
+
+  // Marks selected games with nothing to farm as dormant, and wakes any that
+  // have drops again. A forced refresh counts as a recheck of dormant games.
+  #updateDormant(forced) {
+    const now = Date.now();
+    const selected = new Set(this.config.games.map((g) => g.id));
+    for (const id of this.dormant.keys()) if (!selected.has(id)) this.dormant.delete(id);
+    // No campaigns at all means the page didn't load properly, not that there are no events.
+    if (this.store.campaigns.size === 0) return;
+
+    for (const id of selected) {
+      const entry = this.dormant.get(id);
+      if (this.store.farmableCampaigns(id, now).length) {
+        if (entry) this.log(`${this.#gameName(id)} has drops available again.`, 'success');
+        this.dormant.delete(id);
+        continue;
+      }
+      if (entry && !forced && now < entry.nextCheckAt) continue;
+      const start = this.store.nextCampaignStart(id, now);
+      const nextCheckAt = Math.min(now + DORMANT_RECHECK_MS, start ? start + CAMPAIGN_START_GRACE_MS : Infinity);
+      const reason = this.store.dormantReason(id, now);
+      this.dormant.set(id, { reason, nextCheckAt });
+      this.log(`${this.#gameName(id)} is dormant (${reason}). Next check: ${formatTime(nextCheckAt)}.`);
+    }
+    this.onChange();
+  }
+
+  #allDormant() {
+    return this.config.games.length > 0 && this.config.games.every((g) => this.dormant.has(g.id));
+  }
+
+  #nextDormantCheck() {
+    return Math.min(...[...this.dormant.values()].map((d) => d.nextCheckAt));
   }
 
   // Highest-priority game with something to earn and a live eligible channel.
@@ -275,4 +348,8 @@ export class Farmer {
   #gameName(gameId) {
     return this.store.games.get(gameId)?.name ?? this.config.games.find((g) => g.id === gameId)?.name ?? gameId;
   }
+}
+
+function formatTime(ms) {
+  return new Date(ms).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 }

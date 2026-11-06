@@ -53,6 +53,9 @@
   .log { font: 12px/1.6 ui-monospace, Menlo, monospace; max-height: 260px; overflow: auto; }
   .log .warn { color: var(--warn); } .log .error { color: var(--bad); } .log .success { color: var(--ok); }
   .empty { padding: 24px 16px; text-align: center; }
+  .add-game { display: flex; gap: 8px; margin-bottom: 10px; }
+  .add-game input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .dormant { color: var(--warn); }
   label.toggle { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
   a { color: var(--accent); }
   @media (max-width: 560px) {
@@ -76,6 +79,10 @@
   <section class="card now" id="now"></section>
 
   <h2>Games <span class="muted" style="text-transform:none;letter-spacing:0">· tick to farm, top = highest priority</span></h2>
+  <form id="addgame" class="add-game">
+    <input id="addname" type="text" placeholder="Add a game with no event, e.g. Rust" aria-label="Game name" autocomplete="off">
+    <button type="submit">Add game</button>
+  </form>
   <section class="card" style="padding:0" id="games"></section>
 
   <h2>Activity</h2>
@@ -100,8 +107,8 @@
 
   function renderStatus() {
     const s = $('status');
-    const labels = { starting: 'Starting', login: 'Login needed', refreshing: 'Refreshing', searching: 'Searching', watching: 'Farming', idle: 'Idle', paused: 'Paused' };
-    s.className = 'pill' + (state.phase === 'watching' ? ' ok' : ['login', 'idle', 'paused'].includes(state.phase) ? ' warn' : '');
+    const labels = { starting: 'Starting', login: 'Login needed', refreshing: 'Refreshing', searching: 'Searching', watching: 'Farming', idle: 'Idle', dormant: 'Dormant', paused: 'Paused' };
+    s.className = 'pill' + (state.phase === 'watching' ? ' ok' : ['login', 'idle', 'dormant', 'paused'].includes(state.phase) ? ' warn' : '');
     s.lastElementChild.textContent = labels[state.phase] ?? state.phase;
     $('pause').textContent = state.paused ? 'Resume' : 'Pause';
     $('autoclaim').checked = state.autoClaim;
@@ -161,7 +168,8 @@
         <input type="checkbox" ${on ? 'checked' : ''} data-act="toggle" aria-label="Farm ${esc(g.name)}">
         ${g.boxArtURL ? `<img src="${safeUrl(g.boxArtURL)}" alt="">` : '<img alt="">'}
         <div><div class="name">${on ? `${idx + 1}. ` : ''}${esc(g.name)}</div>
-          <div class="muted">${g.campaigns.length} active campaign${g.campaigns.length === 1 ? '' : 's'}</div></div>
+          <div class="muted">${g.campaigns.length} active campaign${g.campaigns.length === 1 ? '' : 's'}</div>
+          ${g.dormant ? `<div class="dormant">Dormant: ${esc(g.dormant.reason)} · next check ${new Date(g.dormant.nextCheckAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</div>` : ''}</div>
         <div class="order">${on ? `<button data-act="up" ${idx === 0 ? 'disabled' : ''} aria-label="Higher priority">↑</button><button data-act="down" ${idx === sel.length - 1 ? 'disabled' : ''} aria-label="Lower priority">↓</button>` : ''}</div>
         ${on && g.campaigns.length ? `<div class="campaigns">${g.campaigns.map(campaignBlock).join('')}</div>` : ''}
       </div>`;
@@ -191,6 +199,13 @@
       [sel[i], sel[j]] = [sel[j], sel[i]];
     }
     post('games', { games: sel });
+  });
+  $('addgame').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('addname').value.trim();
+    if (!name) return;
+    post('addgame', { name });
+    $('addname').value = '';
   });
   $('refresh').onclick = () => post('refresh');
   $('pause').onclick = () => post(state?.paused ? 'resume' : 'pause');

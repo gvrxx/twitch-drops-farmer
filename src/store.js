@@ -157,12 +157,34 @@ export class Store {
   }
 
   // Active, linked campaigns for a game that still have something to earn.
-  // Campaigns whose drop list we haven't seen yet count as farmable.
+  // Campaigns whose drop details we haven't seen yet count as farmable.
   farmableCampaigns(gameId, now = Date.now()) {
     return [...this.campaigns.values()]
       .filter((c) => c.gameId === gameId && this.isActive(c, now) && c.accountConnected !== false)
-      .filter((c) => c.dropIds.length === 0 || this.pendingDrops(c, now).length > 0)
+      .filter((c) => this.#detailsMissing(c) || this.pendingDrops(c, now).length > 0)
       .sort((a, b) => Date.parse(a.endAt ?? 0) - Date.parse(b.endAt ?? 0));
+  }
+
+  // Why a game has nothing to farm right now.
+  dormantReason(gameId, now = Date.now()) {
+    const active = [...this.campaigns.values()].filter((c) => c.gameId === gameId && this.isActive(c, now));
+    if (active.length === 0) return 'No active event';
+    return active.some((c) => c.accountConnected === false) ? 'Game account not linked' : 'All drops earned';
+  }
+
+  // When the game's next announced campaign starts, if one has been announced.
+  nextCampaignStart(gameId, now = Date.now()) {
+    const starts = [...this.campaigns.values()]
+      .filter((c) => c.gameId === gameId && c.status === 'UPCOMING' && c.accountConnected !== false)
+      .map((c) => Date.parse(c.startAt))
+      .filter((t) => t > now);
+    return starts.length ? Math.min(...starts) : null;
+  }
+
+  // The campaigns list can name drops by id alone, with no watch time.
+  #detailsMissing(campaign) {
+    const drops = this.campaignDrops(campaign);
+    return drops.length === 0 || drops.some((d) => d.required == null);
   }
 
   channelAllowed(campaign, login) {
