@@ -29,7 +29,7 @@ const browser = new TwitchBrowser({
 });
 const loginHint = runtime.browserViewPort
   ? 'Open the browser view (button above) and log in to Twitch there. Your login is saved for next time.'
-  : 'Log in to Twitch in the browser window that opened. Your login is saved for next time.';
+  : 'Twitch refuses logins in this automated window. Close it, run the login step (login.command or login.bat), then start the app again.';
 const farmer = new Farmer({ browser, store, config, log, loginHint, onChange: () => broadcast() });
 store.onChange = () => broadcast();
 

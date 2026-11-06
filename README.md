@@ -31,7 +31,7 @@ This is early software and it hasn't been tried with a real Twitch account yet.
 | App starts and reaches the Twitch login step on Windows, macOS and Linux | Passes automated tests |
 | Docker image builds, starts Chrome and serves the dashboard and browser view | Passes automated tests, not yet tried on Unraid |
 | Finding live Drops streams and playing them muted at 160p | Tested on live Twitch, on macOS only |
-| Logging in to Twitch | Refused in the bundled Chromium on Windows. Edge is now the Windows default, but that isn't confirmed yet. |
+| Logging in to Twitch | Refused in the automated window, so sign-in now happens in a normal browser. The saved session carrying over isn't confirmed on Twitch yet. Docker has no way to do this yet. |
 | Reading your campaigns and progress, and claiming drops | **Not tested on a real account** |
 | Running for days without a restart | **Not tested** |
 
@@ -222,7 +222,12 @@ docker compose up -d --build
 
 These steps are the same on every system.
 
-1. **Log in to Twitch.** Use the browser window the app opened, or the **Browser view** on Docker. If a cookie banner or a 2FA prompt appears, deal with it there yourself. Your login is saved, so you normally do this once per install.
+1. **Log in to Twitch.** Twitch refuses logins in the automated window, so sign in with a normal browser window instead:
+   1. Stop the app if it's running.
+   2. Double-click `login.bat` on Windows. On macOS, run `bash login.command` in Terminal.
+   3. Log in to Twitch in the window that opens, including any 2FA or cookie prompts.
+   4. Close the browser fully. On macOS, press `Cmd+Q`. Closing the window isn't enough.
+   5. Start the app again. Your login is saved, so you normally do this once per install.
 2. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
 3. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first.
 4. **Link any game accounts.** If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
@@ -294,7 +299,8 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | Problem | What to try |
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
-| Twitch says your browser isn't supported at login | Use an installed browser, as shown below. Windows does this by default, and so does macOS once Chrome is installed. Delete `browser-profile` before starting, after closing the app's browser windows. |
+| Twitch says your browser isn't supported at login | Twitch refuses logins in automated browsers. Stop the app, then follow step 1 of [First-time setup](#first-time-setup). |
+| App still says **Login needed** after signing in | Quit the login browser fully, then start the app again. If that doesn't help, stop the app, delete `browser-profile`, and sign in again. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |
 | `EADDRINUSE` error | Another copy is running, or another program uses port 8411. Close it, or change the port (see [Settings](#settings)). |

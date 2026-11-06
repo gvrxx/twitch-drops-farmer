@@ -25,6 +25,8 @@ export class TwitchBrowser extends EventEmitter {
     this.ctx = await chromium.launchPersistentContext(this.profileDir, {
       headless: this.headless,
       channel: this.channel || undefined,
+      // The mock keychain can't read cookies saved by a normal browser sign-in (npm run login).
+      ignoreDefaultArgs: ['--use-mock-keychain'],
       viewport: { width: 1100, height: 700 },
       args: [
         '--autoplay-policy=no-user-gesture-required',
