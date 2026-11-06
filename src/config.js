@@ -36,7 +36,8 @@ export function loadRuntime(config) {
     bindHost: process.env.BIND_HOST || '127.0.0.1',
     allowedHosts: list(process.env.ALLOWED_HOSTS),
     headless: process.env.HEADLESS ? process.env.HEADLESS === 'true' : config.headless,
-    browserChannel: process.env.BROWSER_CHANNEL || '',
+    // Twitch can refuse logins from the bundled Chromium; Windows 11 always has Edge.
+    browserChannel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : ''),
     browserViewPort: Number(process.env.BROWSER_VIEW_PORT) || null,
   };
 }

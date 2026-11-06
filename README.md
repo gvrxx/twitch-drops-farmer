@@ -31,6 +31,7 @@ This is early software and it hasn't been tried with a real Twitch account yet.
 | App starts and reaches the Twitch login step on Windows, macOS and Linux | Passes automated tests |
 | Docker image builds, starts Chrome and serves the dashboard and browser view | Passes automated tests, not yet tried on Unraid |
 | Finding live Drops streams and playing them muted at 160p | Tested on live Twitch, on macOS only |
+| Logging in to Twitch | Refused in the bundled Chromium on Windows. Edge is now the Windows default, but that isn't confirmed yet. |
 | Reading your campaigns and progress, and claiming drops | **Not tested on a real account** |
 | Running for days without a restart | **Not tested** |
 
@@ -43,7 +44,7 @@ Start with [Check that it works](#check-that-it-works) before relying on it.
 | Twitch account | You log in yourself in the browser window the app opens. |
 | [Node.js](https://nodejs.org) 20 or newer | Runs the app. The LTS version is fine. Not needed for Docker. |
 | Playwright | Controls the browser. It's the only code dependency, and it installs automatically. |
-| Chromium | The browser that plays the stream. It downloads automatically, so it won't touch your normal browser or logins. |
+| Browser | Windows uses the installed Microsoft Edge. macOS and Linux use a Chromium copy that downloads automatically. Either way it has its own profile, separate from your normal logins. |
 | Disk space | About 500 MB for Chromium and dependencies. |
 | Memory | Expect roughly 0.5–1 GB of RAM while it's watching. |
 | Internet | Enough for a 160p stream, around 0.5 Mbit/s. |
@@ -78,7 +79,7 @@ You can also use the LTS installer from [nodejs.org](https://nodejs.org). Close 
 2. Double-click `start.bat`.
 3. If you see **Windows protected your PC**, click **More info → Run anyway**.
 
-The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a Chromium window opens on the Twitch login page.
+The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a separate Microsoft Edge window opens on the Twitch login page. It uses its own profile, so your normal Edge logins aren't touched.
 
 Keep the black terminal window open while it runs, then continue with [First-time setup](#first-time-setup).
 
@@ -219,12 +220,12 @@ docker compose up -d --build
 
 These steps are the same on every system.
 
-1. **Log in to Twitch.** Use the Chromium window, or the **Browser view** on Docker. If a cookie banner or a 2FA prompt appears, deal with it there yourself. Your login is saved, so you normally do this once per install.
+1. **Log in to Twitch.** Use the browser window the app opened, or the **Browser view** on Docker. If a cookie banner or a 2FA prompt appears, deal with it there yourself. Your login is saved, so you normally do this once per install.
 2. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
 3. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first.
 4. **Link any game accounts.** If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
 
-The farmer now starts on its own. Leave the Chromium window open: closing it stops the app. If you minimise it, check that the dashboard still shows **Video playing**.
+The farmer now starts on its own. Leave that browser window open: closing it stops the app. If you minimise it, check that the dashboard still shows **Video playing**.
 
 Only run one copy per Twitch account at a time. A second copy won't earn drops faster.
 
@@ -291,10 +292,11 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | Problem | What to try |
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
+| Twitch says your browser isn't supported at login | Use an installed browser, as shown below. Windows now does this by default. Delete `browser-profile` before starting, after closing the app's browser windows. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |
 | `EADDRINUSE` error | Another copy is running, or another program uses port 8411. Close it, or change the port (see [Settings](#settings)). |
-| Error about the profile being in use | A Chromium window from an earlier run is still open. Close it and start again. |
+| Error about the profile being in use | A browser window from an earlier run is still open. Close it and start again. |
 | No games appear | Make sure you're logged in, then click **Refresh now** and wait a minute. If it's still empty, Twitch may have changed its pages. |
 | "Drop list loads once this game is selected" stays visible | Tick the game and click **Refresh now**. If it stays, the farmer still watches a drops-enabled stream for that game. |
 | **Game account not linked** | Click **Link account**, connect the account, then click **Refresh now**. |
@@ -304,10 +306,10 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | `Host ... not allowed` on Docker | Open the dashboard by IP address, or add that hostname to `ALLOWED_HOSTS`. |
 | Docker: blank or crashing browser | Make sure the container was started with `--shm-size=1g`. |
 
-**Use your installed browser.** On Windows, run this in PowerShell from the project folder:
+**Choose a browser.** Windows uses Edge by default. To use Google Chrome instead, run this in PowerShell from the project folder:
 
 ```powershell
-$env:BROWSER_CHANNEL="msedge"; npm start
+$env:BROWSER_CHANNEL="chrome"; npm start
 ```
 
 On macOS with Google Chrome installed, run:
@@ -316,7 +318,7 @@ On macOS with Google Chrome installed, run:
 BROWSER_CHANNEL=chrome npm start
 ```
 
-The app keeps its own separate profile, so you'll need to log in once more.
+These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself. If you switch browsers, close the app first and delete `browser-profile`. You'll then need to log in again.
 
 ## Settings
 
