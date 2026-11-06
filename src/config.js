@@ -27,6 +27,14 @@ export function loadConfig() {
   return { ...DEFAULTS, ...saved };
 }
 
+// Twitch can refuse logins from the bundled Chromium, so prefer an installed
+// browser: Windows 11 always has Edge, and macOS may have Chrome.
+function defaultBrowserChannel() {
+  if (process.platform === 'win32') return 'msedge';
+  if (process.platform === 'darwin' && fs.existsSync('/Applications/Google Chrome.app')) return 'chrome';
+  return '';
+}
+
 // Deployment settings from the environment. Kept apart from config.json so
 // they're never written back into it.
 export function loadRuntime(config) {
@@ -36,8 +44,7 @@ export function loadRuntime(config) {
     bindHost: process.env.BIND_HOST || '127.0.0.1',
     allowedHosts: list(process.env.ALLOWED_HOSTS),
     headless: process.env.HEADLESS ? process.env.HEADLESS === 'true' : config.headless,
-    // Twitch can refuse logins from the bundled Chromium; Windows 11 always has Edge.
-    browserChannel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : ''),
+    browserChannel: process.env.BROWSER_CHANNEL || defaultBrowserChannel(),
     browserViewPort: Number(process.env.BROWSER_VIEW_PORT) || null,
   };
 }

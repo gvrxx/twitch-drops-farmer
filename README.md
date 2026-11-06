@@ -44,7 +44,7 @@ Start with [Check that it works](#check-that-it-works) before relying on it.
 | Twitch account | You log in yourself in the browser window the app opens. |
 | [Node.js](https://nodejs.org) 20 or newer | Runs the app. The LTS version is fine. Not needed for Docker. |
 | Playwright | Controls the browser. It's the only code dependency, and it installs automatically. |
-| Browser | Windows uses the installed Microsoft Edge. macOS and Linux use a Chromium copy that downloads automatically. Either way it has its own profile, separate from your normal logins. |
+| Browser | Windows uses the installed Microsoft Edge. macOS uses Google Chrome if it's installed. Otherwise a Chromium copy downloads automatically and is used instead. Either way it has its own profile, separate from your normal logins. |
 | Disk space | About 500 MB for Chromium and dependencies. |
 | Memory | Expect roughly 0.5–1 GB of RAM while it's watching. |
 | Internet | Enough for a 160p stream, around 0.5 Mbit/s. |
@@ -91,13 +91,15 @@ In **Settings → System → Power**, set the sleep timeout to **Never** while y
 
 Works on Apple silicon and Intel Macs.
 
-### 1. Install Node.js
+### 1. Install Node.js and Chrome
 
 Use the LTS installer from [nodejs.org](https://nodejs.org). If you have Homebrew, you can run this instead:
 
 ```bash
 brew install node
 ```
+
+Also install [Google Chrome](https://www.google.com/chrome/) in your Applications folder, because Twitch may refuse logins from the bundled Chromium.
 
 ### 2. Download the project
 
@@ -122,7 +124,7 @@ If you put the folder somewhere else, change the first command to match.
 
 Running it this way avoids the macOS block on downloaded scripts. If you'd rather double-click `start.command`, macOS may refuse the first time. To allow it, go to **System Settings → Privacy & Security** and choose **Open Anyway**.
 
-The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a Chromium window opens on the Twitch login page.
+The first start takes a few minutes while it installs dependencies and downloads Chromium. When it's done, the dashboard opens in your web browser and a separate Chrome window opens on the Twitch login page. It uses its own profile, so you need to log in there even if you're signed in to your normal Chrome.
 
 Keep the Terminal window open while it runs, then continue with [First-time setup](#first-time-setup).
 
@@ -292,7 +294,7 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | Problem | What to try |
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
-| Twitch says your browser isn't supported at login | Use an installed browser, as shown below. Windows now does this by default. Delete `browser-profile` before starting, after closing the app's browser windows. |
+| Twitch says your browser isn't supported at login | Use an installed browser, as shown below. Windows does this by default, and so does macOS once Chrome is installed. Delete `browser-profile` before starting, after closing the app's browser windows. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |
 | `EADDRINUSE` error | Another copy is running, or another program uses port 8411. Close it, or change the port (see [Settings](#settings)). |
@@ -306,16 +308,16 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | `Host ... not allowed` on Docker | Open the dashboard by IP address, or add that hostname to `ALLOWED_HOSTS`. |
 | Docker: blank or crashing browser | Make sure the container was started with `--shm-size=1g`. |
 
-**Choose a browser.** Windows uses Edge by default. To use Google Chrome instead, run this in PowerShell from the project folder:
+**Choose a browser.** Windows uses Edge by default, and macOS uses Chrome if it's installed. To use Google Chrome on Windows, run this in PowerShell from the project folder:
 
 ```powershell
 $env:BROWSER_CHANNEL="chrome"; npm start
 ```
 
-On macOS with Google Chrome installed, run:
+To force the bundled Chromium on macOS, run:
 
 ```bash
-BROWSER_CHANNEL=chrome npm start
+BROWSER_CHANNEL=chromium npm start
 ```
 
 These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself. If you switch browsers, close the app first and delete `browser-profile`. You'll then need to log in again.
