@@ -130,6 +130,7 @@ export class Farmer {
       this.watching = {
         ...target,
         since: Date.now(),
+        loadedAt: Date.now(),
         progressAtStart: this.store.progressSum(target.gameId),
         lastVideoTime: null,
         badChecks: 0,
@@ -271,8 +272,22 @@ export class Farmer {
       await this.#sleep(HEALTH_CHECK_MS);
       if (this.#woken) return;
       if (!(await this.#checkPlayer())) return;
+      await this.#reloadPlayerIfDue();
     }
     this.#checkStall();
+  }
+
+  // Twitch's player can use more memory the longer it runs, so start it fresh now and then.
+  async #reloadPlayerIfDue() {
+    const w = this.watching;
+    const everyMs = this.config.playerReloadHours * 60 * MIN;
+    if (!everyMs || Date.now() - w.loadedAt < everyMs) return;
+    this.log(`Reloading the stream on ${w.displayName} to free up memory.`);
+    w.loadedAt = Date.now();
+    w.lastVideoTime = null;
+    w.badChecks = 0;
+    w.reloaded = false;
+    await this.browser.reloadPlayer();
   }
 
   // Returns false when we should stop watching this channel and re-plan.

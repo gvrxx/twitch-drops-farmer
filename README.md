@@ -37,6 +37,7 @@ The full cycle works on macOS with a real Twitch account: sign in, find a stream
 | Dormant mode and adding games with no event | Works on macOS. A full 24-hour wait is covered by automated tests, not waited out live. |
 | Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
 | Docker | Builds and starts in automated tests. **You can't sign in there yet**, and it hasn't run on Unraid. |
+| Stream reload for long runs | Works on macOS |
 | Running for days without a restart | **Not tested** |
 
 Your account is still at risk, as noted above. Twitch refuses logins in automated browsers, so it may also reject the saved session in future.
@@ -377,6 +378,7 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 | `autoClaim` | `true` | Claim finished drops automatically. |
 | `inventoryRefreshMinutes` | `5` | How often to check progress and claim drops. |
 | `campaignRefreshMinutes` | `30` | How often to reload the campaign list. |
+| `playerReloadHours` | `4` | How often to reload the stream to free up memory. `0` turns it off. |
 | `headless` | `false` | Hide the browser window. Log in once first; this mode hasn't been tested on live Twitch. |
 
 ## How it works
@@ -385,6 +387,7 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 - **Campaigns and progress:** the farmer opens your Drops Campaigns and Inventory pages in a background tab and reads the data the site loads there. It never calls Twitch's private API itself. That tab blocks video, so it never counts as a second viewer.
 - **Choosing a stream:** for the highest-priority game with something left to earn, it searches the game's directory using the "Drops enabled" filter. If a campaign only counts specific channels, it picks one of those.
 - **Watching:** every 30 seconds it checks that the video is moving and the stream is still in the right category. A stuck player is reloaded once, and after that the channel is skipped for 15 minutes. After 25 minutes with no progress, the channel is skipped for an hour.
+- **Long runs:** every 4 hours it reloads the stream, because Twitch's player can use more memory the longer it runs. Drop progress isn't lost.
 - **Claiming:** every 5 minutes it reloads your inventory and clicks any **Claim** buttons.
 - **Dormant games:** selected games with nothing to earn are set aside and rechecked. See [Dormant mode](#dormant-mode).
 

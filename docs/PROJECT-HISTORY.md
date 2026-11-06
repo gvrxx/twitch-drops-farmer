@@ -16,6 +16,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 4. **macOS and Windows.** Double-click launchers, tests, and CI on macOS, Windows, Linux and Docker.
 5. **Sign-in step.** Added after Twitch refused logins in the automated browser.
 6. **Dormant mode.** Selected games with nothing to earn go quiet and get rechecked every 24 hours.
+7. **Stream reload.** The stream reloads every 4 hours to keep the player's memory down.
 
 ## What we learned
 
@@ -52,6 +53,7 @@ Tested on macOS with a real Twitch account:
 | Find a live stream and play it | Worked, muted at 160p |
 | Earn watch time | Worked: 15 minutes gave 15 minutes on every drop |
 | Auto-claim | Worked: the first drop was claimed automatically once it reached 30 minutes |
+| Stream reload | Worked: with a 3-minute test interval, video came back after both reloads on the same channel and drop progress kept rising |
 
 Only 2 of those 119 campaigns were ready to farm. The rest needed a game account linked first, so linking matters a lot.
 
@@ -62,7 +64,7 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
 - **Docker sign-in.** The browser view runs Chrome under automation, so Twitch will refuse a login there. A way to sign in normally in the container is needed. A session copied from a Mac or PC won't work, because cookies are encrypted per machine.
 - **Unraid.** The image builds and starts in CI but hasn't run on real Unraid.
-- **Running for days.** Twitch's player may use more memory over time. A reload of the stream every few hours is the likely fix.
+- **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
 - **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again.
 - **Keeping up with Twitch.** Site changes can break campaign loading or claiming. Check **Activity** on the dashboard first.
 
@@ -71,4 +73,4 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 1. Read the [README](../README.md) for setup, and run `npm test` to check things still pass.
 2. The main logic is in `src/farmer.js` (what to do next), `src/twitch.js` (the browser) and `src/store.js` (Twitch's data).
 3. Keep to the one-stream, no-spoofing approach.
-4. Suggested order: test Windows, sort out Docker sign-in, then add the periodic stream reload and run it on Unraid.
+4. Suggested order: test Windows, leave it running for a few days, then sort out Docker sign-in and run it on Unraid.

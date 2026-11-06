@@ -10,10 +10,11 @@ const until = async (check) => {
 };
 
 // A browser stand-in where the campaigns page shows whatever `listing` holds.
-function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }] }) {
+function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4 }) {
   const store = new Store();
   const browser = new EventEmitter();
-  const calls = { campaigns: 0 };
+  const calls = { campaigns: 0, reloads: 0 };
+  let videoTime = 0;
   Object.assign(browser, {
     closed: false,
     listing,
@@ -27,14 +28,17 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }] }) {
     },
     claimAll: async () => 0,
     loadInventory: async () => {},
-    findStreams: async () => [],
+    findStreams: async () => streams,
     isChannelLive: async () => false,
     stopWatching: async () => {},
     clearHelper: async () => {},
     watch: async () => {},
-    playerHealth: async () => ({ login: 'streamer', videoTime: 1, gameHref: null }),
+    playerHealth: async () => ({ login: 'streamer', videoTime: (videoTime += 30), gameHref: null }),
+    reloadPlayer: async () => {
+      calls.reloads++;
+    },
   });
-  const config = { games, autoClaim: true, inventoryRefreshMinutes: 5, campaignRefreshMinutes: 30 };
+  const config = { games, autoClaim: true, inventoryRefreshMinutes: 5, campaignRefreshMinutes: 30, playerReloadHours };
   const farmer = new Farmer({ browser, store, config, log: () => {}, onChange: () => {}, onGameFound: () => {} });
   const stop = async () => {
     browser.closed = true;
@@ -91,5 +95,40 @@ test('a dormant game wakes for an announced campaign before 24 hours', async () 
   const { farmer, stop } = setup({ listing: [other, upcoming] });
   await until(() => farmer.phase === 'dormant');
   assert.ok(farmer.dormant.get('g1').nextCheckAt < Date.now() + 2 * 3600_000);
+  await stop();
+});
+
+// Moves the clock forward in 30-second steps, the player's health check interval.
+async function advance(t, minutes) {
+  for (let i = 0; i < minutes * 2; i++) {
+    t.mock.timers.tick(30_000);
+    for (let j = 0; j < 4; j++) await new Promise((r) => setImmediate(r));
+  }
+}
+
+const stream = { login: 'streamer', displayName: 'Streamer', viewers: 5 };
+
+test('the stream reloads once the reload interval has passed', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+  const { farmer, calls, stop } = setup({ listing: [event], streams: [stream], playerReloadHours: 1 });
+  for (let i = 0; i < 20 && farmer.phase !== 'watching'; i++) await new Promise((r) => setImmediate(r));
+  assert.equal(farmer.phase, 'watching');
+
+  await advance(t, 58);
+  assert.equal(calls.reloads, 0);
+  await advance(t, 4);
+  assert.equal(calls.reloads, 1);
+  assert.equal(farmer.watching.login, 'streamer');
+  await advance(t, 62);
+  assert.equal(calls.reloads, 2);
+  await stop();
+});
+
+test('setting the reload interval to 0 turns it off', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+  const { farmer, calls, stop } = setup({ listing: [event], streams: [stream], playerReloadHours: 0 });
+  for (let i = 0; i < 20 && farmer.phase !== 'watching'; i++) await new Promise((r) => setImmediate(r));
+  await advance(t, 120);
+  assert.equal(calls.reloads, 0);
   await stop();
 });
