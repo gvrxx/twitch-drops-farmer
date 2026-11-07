@@ -17,6 +17,8 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 5. **Sign-in step.** Added after Twitch refused logins in the automated browser.
 6. **Dormant mode.** Selected games with nothing to earn go quiet and get rechecked every 24 hours.
 7. **Stream reload.** The stream reloads every 4 hours to keep the player's memory down.
+8. **Staying out of the way.** The browser starts minimized and no longer pulls itself to the front when it opens a stream.
+9. **Sleep handling.** Time asleep no longer counts against a channel, and network errors from sleeping show as short warnings.
 
 ## What we learned
 
@@ -42,6 +44,22 @@ Twitch's responses are matched by object type (`__typename`) rather than by quer
 
 The game link under a stream can also be a "Streaming Together" link on collab streams, so the health check only accepts links to `/directory/`.
 
+### A minimized browser still earns
+
+Chrome can pause or throttle a minimized page. The app launches it with `--disable-backgrounding-occluded-windows` and `--disable-background-media-suspend`, so the page still counts as visible. In a 25-minute test with Chrome minimized, the video never stalled, the page never counted as hidden, and drop progress kept rising.
+
+The app used to call `bringToFront()` whenever it opened a stream, which pulled Chrome in front of whatever you were doing. That's gone. The player tab is now opened last, so it's the active tab without needing focus.
+
+### What sleep looks like
+
+The first overnight run on a sleeping MacBook showed this:
+
+- Nothing is earned while the Mac sleeps. Progress rose only 22 minutes overnight.
+- Each brief maintenance wake caused a `net::ERR_NETWORK_CHANGED` error. The app retried, and it resumed by itself when the Mac woke properly.
+- The no-progress check counted sleep as watch time and skipped a channel after "76 minutes". Time asleep is now excluded.
+
+To farm overnight, keep the computer awake (`caffeinate -i` on macOS).
+
 ## Test results
 
 Tested on macOS with a real Twitch account:
@@ -53,6 +71,8 @@ Tested on macOS with a real Twitch account:
 | Find a live stream and play it | Worked, muted at 160p |
 | Earn watch time | Worked: 15 minutes gave 15 minutes on every drop |
 | Auto-claim | Worked: the first drop was claimed automatically once it reached 30 minutes |
+| Minimized browser | Worked: 25 minutes minimized with no stalls and rising progress |
+| Overnight on a sleeping Mac | Survived and resumed by itself; earned only while awake |
 | Stream reload | Worked: with a 3-minute test interval, video came back after both reloads on the same channel and drop progress kept rising |
 
 Only 2 of those 119 campaigns were ready to farm. The rest needed a game account linked first, so linking matters a lot.

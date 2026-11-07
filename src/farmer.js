@@ -10,7 +10,7 @@ export class Farmer {
   paused = false;
   phase = 'starting'; // starting | login | refreshing | searching | watching | idle | dormant | paused
   message = '';
-  watching = null; // { login, displayName, gameId, campaignIds, since, progressAtStart, lastVideoTime, badChecks, reloaded }
+  watching = null; // { login, displayName, gameId, campaignIds, since, stallSince, progressAtStart, lastVideoTime, badChecks, reloaded }
   lastCampaignRefresh = 0;
   lastInventoryRefresh = 0;
   dormant = new Map(); // gameId -> { reason, nextCheckAt } for selected games with nothing to farm
@@ -60,7 +60,10 @@ export class Farmer {
         await this.#tick();
       } catch (err) {
         if (this.browser.closed) return;
-        this.log(`Error: ${err.message}`, 'error');
+        // Usually the computer sleeping or the connection dropping; it recovers on its own.
+        const offline = /ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_|Timeout \d+ms exceeded/.test(err.message);
+        if (offline) this.log("Couldn't reach Twitch (computer asleep or connection down). Retrying in 30 seconds.", 'warn');
+        else this.log(`Error: ${err.message}`, 'error');
         this.watching = null;
         await this.#sleep(30_000);
       }
@@ -130,7 +133,9 @@ export class Farmer {
       this.watching = {
         ...target,
         since: Date.now(),
+        stallSince: Date.now(),
         loadedAt: Date.now(),
+        lastCheck: Date.now(),
         progressAtStart: this.store.progressSum(target.gameId),
         lastVideoTime: null,
         badChecks: 0,
@@ -294,7 +299,16 @@ export class Farmer {
   async #checkPlayer() {
     const w = this.watching;
     const health = await this.browser.playerHealth();
+    // A long gap between checks means the computer was asleep. That time
+    // earned nothing, so it mustn't count against the channel.
+    if (Date.now() - w.lastCheck > 4 * HEALTH_CHECK_MS) {
+      w.stallSince = Date.now();
+      w.progressAtStart = this.store.progressSum(w.gameId);
+      w.lastVideoTime = null;
+      w.badChecks = 0;
+    }
     w.lastCheck = Date.now();
+    w.pageHidden = health.pageHidden;
 
     if (health.login !== w.login) {
       this.log(`Player left ${w.displayName} (raid or redirect to /${health.login}).`);
@@ -332,12 +346,12 @@ export class Farmer {
 
   #checkStall() {
     const w = this.watching;
-    if (!w || Date.now() - w.since < STALL_MS || this.lastInventoryRefresh < w.since + STALL_MS - 5 * MIN) return;
+    if (!w || Date.now() - w.stallSince < STALL_MS || this.lastInventoryRefresh < w.stallSince + STALL_MS - 5 * MIN) return;
     const known = w.campaignIds.some((id) => this.store.campaigns.get(id)?.dropIds.length);
     if (known && this.store.progressSum(w.gameId) <= w.progressAtStart) {
-      this.#markBad(w.login, 60, `No drop progress after ${Math.round((Date.now() - w.since) / MIN)} min on ${w.displayName}`);
+      this.#markBad(w.login, 60, `No drop progress after ${Math.round((Date.now() - w.stallSince) / MIN)} min on ${w.displayName}`);
     } else {
-      w.since = Date.now();
+      w.stallSince = Date.now();
       w.progressAtStart = this.store.progressSum(w.gameId);
     }
   }

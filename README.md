@@ -38,6 +38,8 @@ The full cycle works on macOS with a real Twitch account: sign in, find a stream
 | Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
 | Docker | Builds and starts in automated tests. **You can't sign in there yet**, and it hasn't run on Unraid. |
 | Stream reload for long runs | Works on macOS |
+| Minimized browser that doesn't take focus | Works on macOS. The stream keeps playing and earning while minimized. Not tried on Windows. |
+| Surviving the computer sleeping | Works on macOS. Nothing is earned while asleep, and it picks up again on wake. |
 | Running for days without a restart | **Not tested** |
 
 Your account is still at risk, as noted above. Twitch refuses logins in automated browsers, so it may also reject the saved session in future.
@@ -91,7 +93,7 @@ Twitch refuses logins in the app's automated browser, so you sign in once in a n
 
 Double-click `start.bat`. The first start takes a few minutes while it installs dependencies and downloads Chromium.
 
-When it's done, the dashboard opens in your web browser and an Edge window opens with a banner saying it's being controlled by automated software. That's expected. Keep that window and the black terminal window open, then continue with [First-time setup](#first-time-setup).
+When it's done, the dashboard opens in your default web browser and Edge starts minimized in the taskbar. Keep Edge and the black terminal window open, then continue with [First-time setup](#first-time-setup).
 
 ### Keep the PC awake
 
@@ -146,7 +148,7 @@ bash start.command
 
 Running these scripts with `bash` avoids the macOS block on downloaded scripts. The first start takes a few minutes while it installs dependencies and downloads Chromium.
 
-When it's done, the dashboard opens in your web browser and a Chrome window opens with a banner saying it's being controlled by automated software. That's expected. Keep that window and Terminal open, then continue with [First-time setup](#first-time-setup).
+When it's done, the dashboard opens in your default web browser and Chrome starts minimized in the Dock. Keep Chrome and Terminal open, then continue with [First-time setup](#first-time-setup).
 
 ### Keep the Mac awake
 
@@ -156,7 +158,7 @@ Start it like this to stop the Mac sleeping while it runs:
 caffeinate -i bash start.command
 ```
 
-On a laptop, keep it plugged in with the lid open.
+On a laptop, keep it plugged in with the lid open. While the Mac sleeps, nothing is earned. The app picks up again by itself when it wakes, and the dashboard shows "Couldn't reach Twitch" warnings for that time.
 
 ## Install on Linux desktop
 
@@ -250,13 +252,23 @@ These steps are the same on every system, once you've signed in and started the 
 2. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first. For a game with no event right now, type its name in the **Add game** box.
 3. **Link any game accounts.** Most campaigns need this. If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
 
-The farmer now starts on its own. Leave that browser window open: closing it stops the app. If you minimise it, check that the dashboard still shows **Video playing**.
+The farmer now starts on its own. Leave the app's browser running in the Dock or taskbar, because quitting it stops the app.
 
 Only run one copy per Twitch account at a time. A second copy won't earn drops faster.
 
 ## Using the dashboard
 
 Open http://127.0.0.1:8411 on the computer running the app, or `http://<unraid-ip>:8411` on Docker.
+
+### What runs where
+
+| Part | Where you see it | Can you close it? |
+| --- | --- | --- |
+| **Dashboard** | Your default browser, such as Waterfox or Safari | Yes. Farming continues; reopen the address any time. |
+| **Stream** | Chrome on macOS, Edge on Windows, minimized | No. Quitting it stops the app. |
+| **App** | The Terminal or black command window | No. Closing it stops everything. |
+
+The app's browser uses its own profile, so your normal browsers, bookmarks and logins aren't touched. A dashboard tab opens each time you start the app, so close the old one if you restart. Chrome briefly appears at startup, then stays minimized and doesn't take focus. You can open it from the Dock or taskbar to see the stream.
 
 | Status | Meaning |
 | --- | --- |
@@ -351,6 +363,8 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | **Video stalled**, or streams never play | Use a browser you already have, as shown below. |
 | Minutes don't go up | Check at https://www.twitch.tv/drops/campaigns that the campaign counts for your account. The app moves to another channel after 25 minutes without progress. |
 | Drops finish but aren't claimed | Check **Auto-claim** is on. Otherwise, claim them at https://www.twitch.tv/drops/inventory. |
+| Chrome or Edge keeps coming to the front | Check `minimizeBrowser` isn't `false`, and that you started the latest version. |
+| "Couldn't reach Twitch" warnings | The computer was asleep or the connection dropped. The app retries every 30 seconds and resumes by itself. |
 | `Host ... not allowed` on Docker | Open the dashboard by IP address, or add that hostname to `ALLOWED_HOSTS`. |
 | Docker: blank or crashing browser | Make sure the container was started with `--shm-size=1g`. |
 
@@ -379,6 +393,7 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 | `inventoryRefreshMinutes` | `5` | How often to check progress and claim drops. |
 | `campaignRefreshMinutes` | `30` | How often to reload the campaign list. |
 | `playerReloadHours` | `4` | How often to reload the stream to free up memory. `0` turns it off. |
+| `minimizeBrowser` | `true` | Start the app's browser minimized. Set to `false` to keep it on screen. Docker always keeps it on screen. |
 | `headless` | `false` | Hide the browser window. Log in once first; this mode hasn't been tested on live Twitch. |
 
 ## How it works
@@ -387,6 +402,8 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 - **Campaigns and progress:** the farmer opens your Drops Campaigns and Inventory pages in a background tab and reads the data the site loads there. It never calls Twitch's private API itself. That tab blocks video, so it never counts as a second viewer.
 - **Choosing a stream:** for the highest-priority game with something left to earn, it searches the game's directory using the "Drops enabled" filter. If a campaign only counts specific channels, it picks one of those.
 - **Watching:** every 30 seconds it checks that the video is moving and the stream is still in the right category. A stuck player is reloaded once, and after that the channel is skipped for 15 minutes. After 25 minutes with no progress, the channel is skipped for an hour.
+- **Staying out of the way:** the app's browser starts minimized and never pulls itself to the front. Flags in `src/twitch.js` stop Chrome from pausing a minimized stream.
+- **Sleep:** time the computer spends asleep doesn't count against a channel, so a channel isn't wrongly skipped for "no progress" after a night's sleep.
 - **Long runs:** every 4 hours it reloads the stream, because Twitch's player can use more memory the longer it runs. Drop progress isn't lost.
 - **Claiming:** every 5 minutes it reloads your inventory and clicks any **Claim** buttons.
 - **Dormant games:** selected games with nothing to earn are set aside and rechecked. See [Dormant mode](#dormant-mode).

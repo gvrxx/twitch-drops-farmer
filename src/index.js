@@ -24,6 +24,8 @@ const browser = new TwitchBrowser({
   profileDir: path.join(DATA_DIR, 'browser-profile'),
   headless: runtime.headless,
   channel: runtime.browserChannel,
+  // Docker's browser view needs the window on screen.
+  minimized: config.minimizeBrowser && !runtime.browserViewPort,
   store,
   log,
 });
@@ -86,6 +88,7 @@ function snapshot() {
       campaignIds: w.campaignIds,
       since: w.since,
       videoOk: w.videoOk ?? true,
+      pageHidden: w.pageHidden,
     },
     lastCampaignRefresh: farmer.lastCampaignRefresh,
     lastInventoryRefresh: farmer.lastInventoryRefresh,

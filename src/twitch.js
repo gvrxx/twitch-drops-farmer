@@ -12,8 +12,9 @@ const GATE_BUTTONS = [
 //  - helper: loads the drops, inventory and directory pages, with video,
 //    images and fonts blocked so it never counts as a second viewer.
 export class TwitchBrowser extends EventEmitter {
-  constructor({ profileDir, headless, channel, store, log }) {
+  constructor({ profileDir, headless, channel, minimized, store, log }) {
     super();
+    this.minimized = minimized;
     this.profileDir = profileDir;
     this.headless = headless;
     this.channel = channel; // e.g. 'chrome' to use Google Chrome instead of bundled Chromium
@@ -33,6 +34,7 @@ export class TwitchBrowser extends EventEmitter {
         '--disable-background-timer-throttling',
         '--disable-renderer-backgrounding',
         '--disable-backgrounding-occluded-windows',
+        '--disable-background-media-suspend',
         // Linux has no keyring in a container; keep cookies in the profile itself.
         ...(process.platform === 'linux' ? ['--password-store=basic'] : []),
       ],
@@ -49,16 +51,30 @@ export class TwitchBrowser extends EventEmitter {
     });
     this.ctx.on('response', (res) => this.#onResponse(res));
 
-    this.player = this.ctx.pages()[0] ?? (await this.ctx.newPage());
-    this.player.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => this.#onFrame(payload)));
-
-    this.helper = await this.ctx.newPage();
+    this.helper = this.ctx.pages()[0] ?? (await this.ctx.newPage());
     await this.helper.route('**/*', (route) => {
       const req = route.request();
       const blocked = ['image', 'media', 'font'].includes(req.resourceType()) || new URL(req.url()).hostname.endsWith('ttvnw.net');
       return blocked ? route.abort() : route.continue();
     });
-    await this.player.bringToFront();
+
+    // Opened last so it's the active tab without having to pull the window forward.
+    this.player = await this.ctx.newPage();
+    this.player.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => this.#onFrame(payload)));
+
+    if (this.minimized && !this.headless && (await this.isLoggedIn())) await this.#minimize();
+  }
+
+  // Sends the window to the Dock or taskbar. The stream keeps playing there.
+  async #minimize() {
+    try {
+      const cdp = await this.ctx.newCDPSession(this.player);
+      const { windowId } = await cdp.send('Browser.getWindowForTarget');
+      await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } });
+      await cdp.detach();
+    } catch (err) {
+      this.log(`Couldn't minimize the browser window: ${err.message}`, 'warn');
+    }
   }
 
   async close() {
@@ -162,7 +178,6 @@ export class TwitchBrowser extends EventEmitter {
 
   async watch(login) {
     await this.player.goto(`${TWITCH}/${encodeURIComponent(login)}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await this.player.bringToFront();
   }
 
   async stopWatching() {
@@ -187,6 +202,7 @@ export class TwitchBrowser extends EventEmitter {
         login: location.pathname.split('/')[1]?.toLowerCase() ?? '',
         videoTime: video?.currentTime ?? null,
         paused: video?.paused ?? true,
+        pageHidden: document.hidden,
         gameHref: gameLink?.getAttribute('href') ?? null,
         gameText: gameLink?.textContent?.trim() ?? null,
       };

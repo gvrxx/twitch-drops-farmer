@@ -39,7 +39,7 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
     },
   });
   const config = { games, autoClaim: true, inventoryRefreshMinutes: 5, campaignRefreshMinutes: 30, playerReloadHours };
-  const farmer = new Farmer({ browser, store, config, log: () => {}, onChange: () => {}, onGameFound: () => {} });
+  const farmer = new Farmer({ browser, store, config, log: (m) => process.env.DEBUG_FARMER && console.log('LOG', new Date().toISOString(), m), onChange: () => {}, onGameFound: () => {} });
   const stop = async () => {
     browser.closed = true;
     farmer.wake();
@@ -130,5 +130,19 @@ test('setting the reload interval to 0 turns it off', async (t) => {
   for (let i = 0; i < 20 && farmer.phase !== 'watching'; i++) await new Promise((r) => setImmediate(r));
   await advance(t, 120);
   assert.equal(calls.reloads, 0);
+  await stop();
+});
+
+test('time asleep does not count as a channel giving no progress', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+  const withDrops = { ...event, timeBasedDrops: [{ id: 'd1', requiredMinutesWatched: 600, self: { currentMinutesWatched: 0 }, __typename: 'TimeBasedDrop' }] };
+  const { farmer, stop } = setup({ listing: [withDrops], streams: [stream], playerReloadHours: 0 });
+  for (let i = 0; i < 20 && farmer.phase !== 'watching'; i++) await new Promise((r) => setImmediate(r));
+  assert.equal(farmer.watching?.login, 'streamer');
+
+  t.mock.timers.tick(70 * 60_000); // the computer sleeps for 70 minutes
+  for (let j = 0; j < 4; j++) await new Promise((r) => setImmediate(r));
+  await advance(t, 10);
+  assert.equal(farmer.watching?.login, 'streamer');
   await stop();
 });

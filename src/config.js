@@ -13,6 +13,7 @@ const DEFAULTS = {
   games: [],
   autoClaim: true,
   headless: false,
+  minimizeBrowser: true,
   inventoryRefreshMinutes: 5,
   campaignRefreshMinutes: 30,
   // Reloads the stream this often to keep the player's memory down; 0 turns it off.
