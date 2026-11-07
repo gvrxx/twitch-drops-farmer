@@ -147,9 +147,21 @@ const actions = {
   },
 };
 
-({ broadcast } = startServer({ port: runtime.port, bindHost: runtime.bindHost, allowedHosts: runtime.allowedHosts, snapshot, actions }));
+const dashboardUrl = `http://127.0.0.1:${runtime.port}`;
+const server = startServer({ port: runtime.port, bindHost: runtime.bindHost, allowedHosts: runtime.allowedHosts, snapshot, actions });
+broadcast = server.broadcast;
+try {
+  await server.listening;
+} catch (err) {
+  if (err.code !== 'EADDRINUSE') throw err;
+  // Most likely the app is already running, so point at it instead of starting a second browser.
+  console.log(`Drops Farmer is already running (port ${runtime.port} is in use). Its dashboard: ${dashboardUrl}`);
+  console.log('To restart it, stop the running copy first with Ctrl+C in its window.');
+  if (process.argv.includes('--open')) openInDefaultBrowser(dashboardUrl);
+  process.exit(1);
+}
 console.log(`Dashboard: http://${runtime.bindHost === '0.0.0.0' ? '<this machine>' : runtime.bindHost}:${runtime.port}`);
-if (process.argv.includes('--open')) openInDefaultBrowser(`http://127.0.0.1:${runtime.port}`);
+if (process.argv.includes('--open')) openInDefaultBrowser(dashboardUrl);
 
 function openInDefaultBrowser(url) {
   const [cmd, args] =

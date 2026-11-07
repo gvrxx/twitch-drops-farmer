@@ -353,7 +353,7 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | App says **Login needed** | The saved login is missing or expired. Stop the app and run the sign-in step again. If that doesn't help, delete `browser-profile` and repeat it. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |
-| `EADDRINUSE` error | Another copy is running, or another program uses port 8411. Close it, or change the port (see [Settings](#settings)). |
+| "Drops Farmer is already running" | A copy is already running, so use its dashboard. To restart, stop that copy with `Ctrl+C` in its window first. If no copy is running, another program is using port 8411; change the port (see [Settings](#settings)). |
 | Error about the profile being in use | A browser window from an earlier run is still open. Close it and start again. |
 | No games appear | Make sure you're signed in, then click **Refresh now** and wait a minute. If it's still empty, Twitch may have changed its pages. |
 | Almost everything says **Game account not linked** | This is normal. Link only the games you play. |

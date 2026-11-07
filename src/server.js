@@ -55,8 +55,13 @@ export function startServer({ port, bindHost, allowedHosts, snapshot, actions })
     send(res, 404, { error: 'not found' });
   });
 
+  // Resolves once the port is ours; rejects with EADDRINUSE if another copy has it.
+  const listening = new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
+  });
   server.listen(port, bindHost);
-  return { server, broadcast };
+  return { server, broadcast, listening };
 }
 
 function isAllowedHost(host, allowedHosts) {
