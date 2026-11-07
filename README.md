@@ -303,8 +303,8 @@ You can leave a game selected even when it has no event. A selected game goes do
 | **Game account not linked** | Click **Link account**, then **Refresh now**. |
 
 - **Other games keep going.** If another selected game has drops, the app keeps farming that one. Dormant games are skipped, and the app notices a new event for them at its regular 30-minute campaign check.
-- **When every selected game is dormant,** the app stops watching and leaves Twitch's pages. It rechecks every 24 hours.
-- **Announced events are caught early.** If Twitch lists an upcoming event for a game, the app checks 5 minutes after it starts instead of waiting out the 24 hours.
+- **When every selected game is dormant,** the app stops watching and leaves Twitch's pages. It rechecks every 3 days.
+- **Announced events are caught early.** If Twitch lists an upcoming event for a game, the app checks 5 minutes after it starts instead of waiting out the 3 days.
 - **Check right away** with **Refresh now**.
 
 The app and its browser window must stay open for rechecks to happen. Dormant state isn't saved, so restarting the app checks again immediately.

@@ -15,7 +15,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 3. **Docker.** An image with Chrome on a virtual screen and a noVNC browser view, plus LAN access settings. This was meant for Unraid.
 4. **macOS and Windows.** Double-click launchers, tests, and CI on macOS, Windows, Linux and Docker.
 5. **Sign-in step.** Added after Twitch refused logins in the automated browser.
-6. **Dormant mode.** Selected games with nothing to earn go quiet and get rechecked every 24 hours.
+6. **Dormant mode.** Selected games with nothing to earn go quiet and get rechecked every 3 days (originally every 24 hours).
 7. **Stream reload.** The stream reloads every 4 hours to keep the player's memory down.
 8. **Staying out of the way.** The browser starts minimized and no longer pulls itself to the front when it opens a stream.
 9. **Sleep handling.** Time asleep no longer counts against a channel, and network errors from sleeping show as short warnings.

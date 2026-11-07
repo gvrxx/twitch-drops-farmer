@@ -203,7 +203,7 @@
         ${g.boxArtURL ? `<img src="${safeUrl(g.boxArtURL)}" alt="">` : '<img alt="">'}
         <div><div class="name">${on ? `${idx + 1}. ` : ''}${esc(g.name)}</div>
           <div class="muted">${g.campaigns.length} active campaign${g.campaigns.length === 1 ? '' : 's'}</div>
-          ${g.dormant ? `<div class="dormant">Dormant: ${esc(g.dormant.reason)} · next check ${new Date(g.dormant.nextCheckAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+          ${g.dormant ? `<div class="dormant">Dormant: ${esc(g.dormant.reason)} · next check ${new Date(g.dormant.nextCheckAt).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
           ${on && g.campaigns.some((c) => c.drops.length) ? foldButton(g.id, g.campaigns.reduce((n, c) => n + c.drops.length, 0)) : ''}</div>
         <div class="order">${on ? `<button data-act="up" ${idx === 0 ? 'disabled' : ''} aria-label="Higher priority">↑</button><button data-act="down" ${idx === sel.length - 1 ? 'disabled' : ''} aria-label="Lower priority">↓</button>` : ''}</div>
         ${on && g.campaigns.length ? `<div class="campaigns">${collapsed.has(g.id) ? dropSummary(g.campaigns) : g.campaigns.map(campaignBlock).join('')}</div>` : ''}

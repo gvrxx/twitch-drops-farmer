@@ -2,7 +2,7 @@ const MIN = 60_000;
 const HEALTH_CHECK_MS = 30_000;
 const STALL_MS = 25 * MIN; // no progress for this long on a channel -> try another
 const MAX_ALLOWLIST_PROBES = 8;
-const DORMANT_RECHECK_MS = 24 * 60 * MIN;
+const DORMANT_RECHECK_MS = 3 * 24 * 60 * MIN;
 const DORMANT_POLL_MS = 60 * MIN; // wakes hourly so a sleeping computer can't stretch the wait
 const CAMPAIGN_START_GRACE_MS = 5 * MIN; // lets Twitch mark a new campaign active
 
@@ -381,5 +381,5 @@ export class Farmer {
 }
 
 function formatTime(ms) {
-  return new Date(ms).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return new Date(ms).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }

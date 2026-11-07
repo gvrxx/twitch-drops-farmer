@@ -52,12 +52,12 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
 const other = { id: 'c9', status: 'ACTIVE', endAt: '2099-01-01T00:00:00Z', game: { id: 'other', displayName: 'Other', __typename: 'Game' }, self: { isAccountConnected: true }, __typename: 'DropCampaign' };
 const event = { ...other, id: 'c1', game: { id: 'g1', displayName: 'Quiet Game', __typename: 'Game' } };
 
-test('a selected game with no event goes dormant for 24 hours', async () => {
+test('a selected game with no event goes dormant for 3 days', async () => {
   const { farmer, stop } = setup({ listing: [other] });
   await until(() => farmer.phase === 'dormant');
   const { reason, nextCheckAt } = farmer.dormant.get('g1');
   assert.equal(reason, 'No active event');
-  assert.ok(Math.abs(nextCheckAt - Date.now() - 24 * 3600_000) < 60_000);
+  assert.ok(Math.abs(nextCheckAt - Date.now() - 72 * 3600_000) < 60_000);
   await stop();
 });
 
@@ -89,7 +89,7 @@ test('a failed campaigns load does not make games dormant', async () => {
   await stop();
 });
 
-test('a dormant game wakes for an announced campaign before 24 hours', async () => {
+test('a dormant game wakes for an announced campaign before the 3-day recheck', async () => {
   const startAt = new Date(Date.now() + 3600_000).toISOString();
   const upcoming = { ...event, status: 'UPCOMING', startAt };
   const { farmer, stop } = setup({ listing: [other, upcoming] });
