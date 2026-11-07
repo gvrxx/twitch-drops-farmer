@@ -3,3 +3,4 @@ browser-profile
 config.json
 .env
 *.log
+history.json

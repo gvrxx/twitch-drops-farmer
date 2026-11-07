@@ -20,10 +20,13 @@ export class Farmer {
   #forceRefresh = true;
   #claimPending = false;
   #gameLookups = []; // names waiting to be resolved in the helper tab
+  #unclaimed = null; // ids of drops known to be unclaimed at the last inventory check
 
-  constructor({ browser, store, config, log, loginHint, onChange, onGameFound }) {
+  constructor({ browser, store, config, log, loginHint, onChange, onGameFound, onClaim = () => {}, onWatch = () => {} }) {
     this.loginHint = loginHint;
     this.onGameFound = onGameFound;
+    this.onClaim = onClaim; // (drop, campaign) for each newly claimed drop
+    this.onWatch = onWatch; // (gameId, minutes) of video that actually played
     this.browser = browser;
     this.store = store;
     this.config = config;
@@ -190,13 +193,13 @@ export class Farmer {
     if (force || this.#claimPending || now - this.lastInventoryRefresh > this.config.inventoryRefreshMinutes * MIN) {
       this.#claimPending = false;
       this.#setPhase('refreshing', 'Checking your drops inventory…');
-      if (this.config.autoClaim) {
-        const claimed = await this.browser.claimAll();
-        if (claimed) this.log(`Claimed ${claimed} drop${claimed > 1 ? 's' : ''}.`, 'success');
-      } else {
-        await this.browser.loadInventory();
-      }
+      let clicked = 0;
+      if (this.config.autoClaim) clicked = await this.browser.claimAll();
+      else await this.browser.loadInventory();
       this.lastInventoryRefresh = Date.now();
+      // Named claims are logged through onClaim; this covers any it couldn't match.
+      const named = this.#recordClaims();
+      if (clicked > named) this.log(`Claimed ${clicked} drop${clicked > 1 ? 's' : ''}.`, 'success');
     }
     if (this.phase === 'refreshing') this.#setPhase(this.watching ? 'watching' : 'searching');
     return force;
@@ -229,6 +232,34 @@ export class Farmer {
     this.onChange();
   }
 
+  // Reports drops that were unclaimed at the previous inventory check and are
+  // claimed now, whether the app or you claimed them. The first check only
+  // takes stock, so drops claimed before the app started aren't reported.
+  // Returns how many it reported.
+  #recordClaims() {
+    const drops = [...this.store.drops.values()];
+    let reported = 0;
+    if (this.#unclaimed) {
+      for (const d of drops) {
+        if (!d.claimed || !this.#unclaimed.has(d.id)) continue;
+        this.onClaim(d, this.store.campaigns.get(d.campaignId));
+        reported++;
+      }
+    }
+    this.#unclaimed = new Set(drops.filter((d) => !d.claimed && d.required != null).map((d) => d.id));
+    return reported;
+  }
+
+  // Selected games in the order to try them. With farmOrder 'ending', the game
+  // whose next campaign ends soonest comes first; the dashboard order breaks ties.
+  #gameOrder() {
+    const games = this.config.games.map((g) => g.id);
+    if (this.config.farmOrder === 'priority') return games;
+    const soonest = (id) => Math.min(...this.store.farmableCampaigns(id).map((c) => Date.parse(c.endAt ?? '') || Infinity), Infinity);
+    const ends = new Map(games.map((id) => [id, soonest(id)]));
+    return games.sort((a, b) => ends.get(a) - ends.get(b) || 0); // Infinity - Infinity is NaN
+  }
+
   #allDormant() {
     return this.config.games.length > 0 && this.config.games.every((g) => this.dormant.has(g.id));
   }
@@ -237,10 +268,10 @@ export class Farmer {
     return Math.min(...[...this.dormant.values()].map((d) => d.nextCheckAt));
   }
 
-  // Highest-priority game with something to earn and a live eligible channel.
-  // Keeps the current channel when it's still a valid choice for that game.
+  // First game (see #gameOrder) with something to earn and a live eligible
+  // channel. Keeps the current channel when it's still a valid choice for that game.
   async #pickTarget() {
-    for (const { id: gameId } of this.config.games) {
+    for (const gameId of this.#gameOrder()) {
       const campaigns = this.store.farmableCampaigns(gameId);
       if (campaigns.length === 0) continue;
       const eligibleFor = (login) => campaigns.filter((c) => this.store.channelAllowed(c, login)).map((c) => c.id);
@@ -300,9 +331,11 @@ export class Farmer {
   async #checkPlayer() {
     const w = this.watching;
     const health = await this.browser.playerHealth();
+    const gap = Date.now() - w.lastCheck;
     // A long gap between checks means the computer was asleep. That time
     // earned nothing, so it mustn't count against the channel.
-    if (Date.now() - w.lastCheck > 4 * HEALTH_CHECK_MS) {
+    const slept = gap > 4 * HEALTH_CHECK_MS;
+    if (slept) {
       w.stallSince = Date.now();
       w.progressAtStart = this.store.progressSum(w.gameId);
       w.lastVideoTime = null;
@@ -329,6 +362,7 @@ export class Farmer {
     w.videoOk = moving || w.lastVideoTime == null;
     w.lastVideoTime = health.videoTime;
     w.badChecks = moving ? 0 : w.badChecks + 1;
+    if (moving && !slept) this.onWatch(w.gameId, gap / MIN);
     this.onChange();
     if (w.badChecks >= 4) {
       if (!w.reloaded) {

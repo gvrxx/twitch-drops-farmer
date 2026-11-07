@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { DATA_DIR, loadConfig, loadRuntime, saveConfig } from './config.js';
 import { Farmer } from './farmer.js';
+import { History } from './history.js';
 import { startServer } from './server.js';
 import { Store } from './store.js';
 import { TwitchBrowser } from './twitch.js';
@@ -9,6 +10,7 @@ import { TwitchBrowser } from './twitch.js';
 const config = loadConfig();
 const runtime = loadRuntime(config);
 const store = new Store();
+const history = new History(path.join(DATA_DIR, 'history.json'));
 const logLines = [];
 let broadcast = () => {};
 
@@ -32,7 +34,22 @@ const browser = new TwitchBrowser({
 const loginHint = runtime.browserViewPort
   ? 'Open the browser view (button above) and log in to Twitch there. Your login is saved for next time.'
   : 'Twitch refuses logins in this automated window. Close it, run the login step (login.command or login.bat), then start the app again.';
-const farmer = new Farmer({ browser, store, config, log, loginHint, onChange: () => broadcast(), onGameFound: addGameToConfig });
+const gameName = (id) => store.games.get(id)?.name ?? config.games.find((g) => g.id === id)?.name ?? id;
+const farmer = new Farmer({
+  browser,
+  store,
+  config,
+  log,
+  loginHint,
+  onChange: () => broadcast(),
+  onGameFound: addGameToConfig,
+  onClaim(drop, campaign) {
+    const gameId = campaign?.gameId;
+    history.addClaim({ gameId, game: gameName(gameId), campaign: campaign?.name, drop: drop.benefit ?? drop.name, image: drop.image });
+    log(`Claimed ${drop.benefit ?? drop.name} (${gameName(gameId)}).`, 'success');
+  },
+  onWatch: (gameId, minutes) => history.addWatch(gameId, gameName(gameId), minutes),
+});
 store.onChange = () => broadcast();
 
 // Saved with the game so games without an event keep their picture after a restart.
@@ -99,6 +116,8 @@ function snapshot() {
     lastCampaignRefresh: farmer.lastCampaignRefresh,
     lastInventoryRefresh: farmer.lastInventoryRefresh,
     autoClaim: config.autoClaim,
+    farmOrder: config.farmOrder,
+    history: history.snapshot(),
     browserViewPort: runtime.browserViewPort,
     games,
     log: logLines.slice(-80),
@@ -136,6 +155,13 @@ const actions = {
     saveConfig(config);
     log(`Auto-claim ${config.autoClaim ? 'on' : 'off'}.`);
   },
+  order(body) {
+    if (!['ending', 'priority'].includes(body.order)) throw new Error('order must be "ending" or "priority"');
+    config.farmOrder = body.order;
+    saveConfig(config);
+    log(config.farmOrder === 'ending' ? 'Farming order: campaigns ending soonest first.' : 'Farming order: your game order.');
+    farmer.wake();
+  },
   refresh() {
     farmer.wake({ refresh: true });
   },
@@ -170,11 +196,13 @@ function openInDefaultBrowser(url) {
 }
 
 browser.on('closed', () => {
+  history.save();
   console.log('Browser window closed. Stopping.');
   process.exit(0);
 });
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {
+    history.save();
     await browser.close();
     process.exit(0);
   });

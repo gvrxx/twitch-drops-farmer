@@ -21,6 +21,9 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 9. **Sleep handling.** Time asleep no longer counts against a channel, and network errors from sleeping show as short warnings.
 10. **Game search.** The dashboard's search box suggests games as you type, including ones with no event, using Twitch's own category search.
 11. **Collapsible drop lists.** Each game's drops, and the ones under the current stream, can be folded into a one-line summary.
+12. **Ending-soonest order.** By default the game whose campaign ends first is farmed first, so drops don't expire while another game is watched. Your own order is still available.
+13. **Needs linking.** One list of every campaign skipped for an unlinked game account, with its link.
+14. **History.** Claimed drops and watch time per game are saved to `history.json` and shown on the dashboard.
 
 ## What we learned
 

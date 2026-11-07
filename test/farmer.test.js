@@ -10,7 +10,7 @@ const until = async (check) => {
 };
 
 // A browser stand-in where the campaigns page shows whatever `listing` holds.
-function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4 }) {
+function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4, farmOrder, onClaim }) {
   const store = new Store();
   const browser = new EventEmitter();
   const calls = { campaigns: 0, reloads: 0 };
@@ -26,9 +26,13 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
       calls.campaigns++;
       store.ingest({ data: { currentUser: { id: '1', login: 'me', dropCampaigns: browser.listing } } });
     },
-    claimAll: async () => 0,
+    // The inventory page, when a test sets one.
+    claimAll: async () => {
+      if (browser.inventory) store.ingest(browser.inventory);
+      return 0;
+    },
     loadInventory: async () => {},
-    findStreams: async () => streams,
+    findStreams: async (gameId) => (typeof streams === 'function' ? streams(gameId) : streams),
     isChannelLive: async () => false,
     stopWatching: async () => {},
     clearHelper: async () => {},
@@ -38,8 +42,8 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
       calls.reloads++;
     },
   });
-  const config = { games, autoClaim: true, inventoryRefreshMinutes: 5, campaignRefreshMinutes: 30, playerReloadHours };
-  const farmer = new Farmer({ browser, store, config, log: (m) => process.env.DEBUG_FARMER && console.log('LOG', new Date().toISOString(), m), onChange: () => {}, onGameFound: () => {} });
+  const config = { games, autoClaim: true, inventoryRefreshMinutes: 5, campaignRefreshMinutes: 30, playerReloadHours, farmOrder };
+  const farmer = new Farmer({ browser, store, config, log: (m) => process.env.DEBUG_FARMER && console.log('LOG', new Date().toISOString(), m), onChange: () => {}, onGameFound: () => {}, onClaim });
   const stop = async () => {
     browser.closed = true;
     farmer.wake();
@@ -144,5 +148,52 @@ test('time asleep does not count as a channel giving no progress', async (t) => 
   for (let j = 0; j < 4; j++) await new Promise((r) => setImmediate(r));
   await advance(t, 10);
   assert.equal(farmer.watching?.login, 'streamer');
+  await stop();
+});
+
+// Two selected games, each with a live stream; 'late' is first in the dashboard order.
+function twoGames(farmOrder) {
+  const camp = (id, endAt) => ({ id: `c-${id}`, status: 'ACTIVE', endAt, game: { id, displayName: id, __typename: 'Game' }, self: { isAccountConnected: true }, __typename: 'DropCampaign' });
+  return setup({
+    listing: [camp('late', '2099-01-01T00:00:00Z'), camp('soon', '2090-01-01T00:00:00Z')],
+    games: [{ id: 'late', name: 'late' }, { id: 'soon', name: 'soon' }],
+    streams: (gameId) => [{ login: `${gameId}-streamer`, displayName: gameId, viewers: 5 }],
+    farmOrder,
+  });
+}
+
+test('the campaign ending soonest is farmed first', async () => {
+  const { farmer, stop } = twoGames('ending');
+  await until(() => farmer.phase === 'watching');
+  assert.equal(farmer.watching.gameId, 'soon');
+  await stop();
+});
+
+test('"my order" farms the games in the dashboard order', async () => {
+  const { farmer, stop } = twoGames('priority');
+  await until(() => farmer.phase === 'watching');
+  assert.equal(farmer.watching.gameId, 'late');
+  await stop();
+});
+
+test('drops claimed while running are reported once; earlier claims are not', async () => {
+  const drop = (id, self) => ({ id, name: id, requiredMinutesWatched: 30, self, __typename: 'TimeBasedDrop' });
+  const listing = [{ ...event, timeBasedDrops: [drop('old', { currentMinutesWatched: 30 }), drop('new', { currentMinutesWatched: 30 })] }];
+  const inventory = (claimedNew) => ({
+    data: { currentUser: { inventory: { dropCampaignsInProgress: [{ id: 'c1', timeBasedDrops: [drop('old', { isClaimed: true }), drop('new', { isClaimed: claimedNew })] }] } } },
+  });
+  const claims = [];
+  const { farmer, browser, stop } = setup({ listing, onClaim: (d) => claims.push(d.id) });
+  browser.inventory = inventory(false);
+  await until(() => farmer.lastInventoryRefresh > 0);
+  assert.deepEqual(claims, []);
+
+  browser.inventory = inventory(true);
+  const before = farmer.lastInventoryRefresh;
+  farmer.wake({ refresh: true });
+  await until(() => farmer.lastInventoryRefresh > before);
+  farmer.wake({ refresh: true });
+  await new Promise((r) => setTimeout(r, 40));
+  assert.deepEqual(claims, ['new']);
   await stop();
 });

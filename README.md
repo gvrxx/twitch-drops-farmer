@@ -249,8 +249,8 @@ docker compose up -d --build
 These steps are the same on every system, once you've signed in and started the app as described in your install guide.
 
 1. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
-2. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first. To add a game that isn't listed, such as one with no event right now, search for it in the box above the list and pick it from the suggestions.
-3. **Link any game accounts.** Most campaigns need this. If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
+2. **Pick your games.** Tick the games you want to farm. By default the app farms the campaign that ends soonest first, so nothing runs out while another game is being watched. To set the order yourself, change **Farm first** to **My order (↑↓)** and use the arrows. To add a game that isn't listed, such as one with no event right now, search for it in the box above the list and pick it from the suggestions.
+3. **Link any game accounts.** Most campaigns need this. The **Needs linking** section lists every campaign waiting for a link, with your selected games first and in red. Click **Link account**, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
 
 The farmer now starts on its own. Leave the app's browser running in the Dock or taskbar, because quitting it stops the app.
 
@@ -282,7 +282,8 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 
 | Control | What it does |
 | --- | --- |
-| Checkbox and ↑/↓ arrows | Choose which games to farm and in what order. |
+| Checkbox | Choose which games to farm. The number before a selected game is its place in the farming order. |
+| **Farm first** | **The campaign ending soonest** (default) farms the game whose campaign ends first, and the ↑/↓ arrows only break ties. **My order (↑↓)** farms the games in the order you set with the arrows. |
 | **Search box** | Finds any Twitch game as you type, including games with no event, and adds the one you pick. Results show whether a game has drops right now. |
 | **Hide drops / Show drops** | Folds a game's drop list, or the one under the stream you're watching, into a one-line summary. Your choice is remembered in that browser. |
 | **Refresh now** | Reloads campaigns and inventory immediately. |
@@ -290,7 +291,11 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 | **Auto-claim** | Turns automatic claiming on or off. |
 | **Browser view** | Docker only. Opens the virtual screen. |
 
-**Activity** at the bottom shows what the app has been doing. Check it first if something looks wrong.
+**Needs linking** lists every active campaign that's skipped because your game account isn't linked. Selected games come first, in red; the button underneath shows the rest. Each row has a **Link account** button. Click **Refresh now** after linking.
+
+**History** shows the drops claimed while the app was running, newest first, and how long each game was watched. Only time when the video was actually playing counts. It's saved in `history.json` in the project folder (the data folder on Docker), so it survives restarts. Drops claimed before the app first started aren't listed. Delete the file to start over.
+
+**Activity** at the bottom shows what the app has been doing. Check it first if something looks wrong. It's cleared on restart.
 
 ## Dormant mode
 
@@ -328,7 +333,7 @@ If any of these fail, keep the contents of **Activity**, as that's what's needed
 
 - **Stop:** click the terminal window and press `Ctrl+C`. On Windows, answer `Y` if it asks to terminate the batch job.
 - **Start again:** run `start.bat` or `bash start.command` the same way as before.
-- **Update:** download the new ZIP and unzip it to a new folder. Copy `config.json` and `browser-profile` from the old folder into the new one to keep your settings and login, then start it from the new folder.
+- **Update:** download the new ZIP and unzip it to a new folder. Copy `config.json`, `history.json` and `browser-profile` from the old folder into the new one to keep your settings and login, then start it from the new folder.
 
 ### Docker
 
@@ -395,6 +400,7 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 | `inventoryRefreshMinutes` | `5` | How often to check progress and claim drops. |
 | `campaignRefreshMinutes` | `30` | How often to reload the campaign list. |
 | `playerReloadHours` | `4` | How often to reload the stream to free up memory. `0` turns it off. |
+| `farmOrder` | `"ending"` | `"ending"` farms the campaign that ends soonest first; `"priority"` follows your game order. Also set from the dashboard's **Farm first** menu. |
 | `minimizeBrowser` | `true` | Start the app's browser minimized. Set to `false` to keep it on screen. Docker always keeps it on screen. |
 | `headless` | `false` | Hide the browser window. Log in once first; this mode hasn't been tested on live Twitch. |
 
@@ -402,12 +408,13 @@ These commands don't open the dashboard, so go to http://127.0.0.1:8411 yourself
 
 - **Signing in:** you log in yourself in a normal browser window, with no automation attached. The app doesn't try to hide that it's automated; it reuses the login saved in its profile.
 - **Campaigns and progress:** the farmer opens your Drops Campaigns and Inventory pages in a background tab and reads the data the site loads there. It never calls Twitch's private API itself. That tab blocks video, so it never counts as a second viewer.
-- **Choosing a stream:** for the highest-priority game with something left to earn, it searches the game's directory using the "Drops enabled" filter. If a campaign only counts specific channels, it picks one of those.
+- **Choosing a game:** among your selected games with something left to earn, it picks the one whose campaign ends soonest, or the top one in **My order** mode. Drops that can no longer be finished before they expire are ignored.
+- **Choosing a stream:** for that game, it searches the game's directory using the "Drops enabled" filter. If a campaign only counts specific channels, it picks one of those.
 - **Watching:** every 30 seconds it checks that the video is moving and the stream is still in the right category. A stuck player is reloaded once, and after that the channel is skipped for 15 minutes. After 25 minutes with no progress, the channel is skipped for an hour.
 - **Staying out of the way:** the app's browser starts minimized and never pulls itself to the front. Flags in `src/twitch.js` stop Chrome from pausing a minimized stream.
 - **Sleep:** time the computer spends asleep doesn't count against a channel, so a channel isn't wrongly skipped for "no progress" after a night's sleep.
 - **Long runs:** every 4 hours it reloads the stream, because Twitch's player can use more memory the longer it runs. Drop progress isn't lost.
-- **Claiming:** every 5 minutes it reloads your inventory and clicks any **Claim** buttons.
+- **Claiming:** every 5 minutes it reloads your inventory and clicks any **Claim** buttons. It also reads your claimed rewards, so drops already earned aren't farmed again after a restart.
 - **Dormant games:** selected games with nothing to earn are set aside and rechecked. See [Dormant mode](#dormant-mode).
 
 Your Twitch login stays in `browser-profile/` on your machine. Treat that folder like a password, and don't share it. It's excluded from Git.

@@ -18,6 +18,7 @@ const DEFAULTS = {
   campaignRefreshMinutes: 30,
   // Reloads the stream this often to keep the player's memory down; 0 turns it off.
   playerReloadHours: 4,
+  farmOrder: 'ending', // 'ending': campaign ending soonest first; 'priority': the order of config.games
 };
 
 export function loadConfig() {
