@@ -45,9 +45,9 @@ export function startServer({ port, bindHost, allowedHosts, snapshot, actions })
       if (!action) return send(res, 404, { error: 'not found' });
       try {
         const body = JSON.parse((await readBody(req)) || '{}');
-        await action(body);
+        const result = await action(body);
         broadcast();
-        return send(res, 200, { ok: true });
+        return send(res, 200, { ok: true, ...result });
       } catch (err) {
         return send(res, 400, { error: err.message });
       }

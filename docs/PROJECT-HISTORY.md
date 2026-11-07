@@ -19,6 +19,8 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 7. **Stream reload.** The stream reloads every 4 hours to keep the player's memory down.
 8. **Staying out of the way.** The browser starts minimized and no longer pulls itself to the front when it opens a stream.
 9. **Sleep handling.** Time asleep no longer counts against a channel, and network errors from sleeping show as short warnings.
+10. **Game search.** The dashboard's search box suggests games as you type, including ones with no event, using Twitch's own category search.
+11. **Collapsible drop lists.** Each game's drops, and the ones under the current stream, can be folded into a one-line summary.
 
 ## What we learned
 
@@ -59,6 +61,12 @@ The first overnight run on a sleeping MacBook showed this:
 - The no-progress check counted sleep as watch time and skipped a channel after "76 minutes". Time asleep is now excluded.
 
 To farm overnight, keep the computer awake (`caffeinate -i` on macOS).
+
+### Searching for games
+
+Twitch's search page (`/search?term=...&type=categories`) returns categories in a `SearchForResultGames` section, separate from channel results. The app reads only that section, in a third browser tab of its own so searches never wait on farming. A search takes about a second.
+
+Twitch finds nothing while the last word is half-typed ("hollow kn"), even though "hollow" works. The app then searches again without the unfinished word and keeps the names that contain what you typed. Twitch's own results can include loosely related categories, such as "Just Chatting" for "rust", and those are shown as Twitch returns them.
 
 ## Test results
 

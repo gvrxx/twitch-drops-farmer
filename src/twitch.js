@@ -12,6 +12,8 @@ const GATE_BUTTONS = [
 //  - helper: loads the drops, inventory and directory pages, with video,
 //    images and fonts blocked so it never counts as a second viewer.
 export class TwitchBrowser extends EventEmitter {
+  #searchQueue = Promise.resolve();
+
   constructor({ profileDir, headless, channel, minimized, store, log }) {
     super();
     this.minimized = minimized;
@@ -52,11 +54,10 @@ export class TwitchBrowser extends EventEmitter {
     this.ctx.on('response', (res) => this.#onResponse(res));
 
     this.helper = this.ctx.pages()[0] ?? (await this.ctx.newPage());
-    await this.helper.route('**/*', (route) => {
-      const req = route.request();
-      const blocked = ['image', 'media', 'font'].includes(req.resourceType()) || new URL(req.url()).hostname.endsWith('ttvnw.net');
-      return blocked ? route.abort() : route.continue();
-    });
+    await blockHeavyContent(this.helper);
+    // Game search gets its own tab so it never has to wait for farming work.
+    this.search = await this.ctx.newPage();
+    await blockHeavyContent(this.search);
 
     // Opened last so it's the active tab without having to pull the window forward.
     this.player = await this.ctx.newPage();
@@ -158,7 +159,19 @@ export class TwitchBrowser extends EventEmitter {
     const slug = new URL(this.helper.url()).pathname.match(/^\/directory\/category\/([^/]+)/)?.[1];
     if (!slug) return null;
     const game = [...this.store.games.values()].find((g) => g.slug === decodeURIComponent(slug));
-    return game ? { id: game.id, name: game.name } : null;
+    return game ? { id: game.id, name: game.name, boxArtURL: game.boxArtURL } : null;
+  }
+
+  // Twitch's own category search, which also finds games with no drops event.
+  searchGames(term) {
+    const run = this.#searchQueue.then(async () => {
+      const since = Date.now();
+      await this.search.goto(`${TWITCH}/search?term=${encodeURIComponent(term)}&type=categories`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      for (let i = 0; i < 60 && !(this.store.lastSearch?.at >= since); i++) await this.search.waitForTimeout(250);
+      return this.store.lastSearch?.at >= since ? this.store.lastSearch.games.slice(0, 10) : [];
+    });
+    this.#searchQueue = run.catch(() => {});
+    return run;
   }
 
   // Opens a channel page (video blocked) to see if it's live in the given game.
@@ -230,6 +243,16 @@ export class TwitchBrowser extends EventEmitter {
       }
     }
   }
+}
+
+// Background tabs only need Twitch's data, not its video, images or fonts.
+// Blocking video also keeps them from ever counting as a second viewer.
+function blockHeavyContent(page) {
+  return page.route('**/*', (route) => {
+    const req = route.request();
+    const blocked = ['image', 'media', 'font'].includes(req.resourceType()) || new URL(req.url()).hostname.endsWith('ttvnw.net');
+    return blocked ? route.abort() : route.continue();
+  });
 }
 
 // Websocket messages wrap JSON inside JSON strings; dig out any {type: "drop-..."} objects.

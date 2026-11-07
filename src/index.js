@@ -35,6 +35,11 @@ const loginHint = runtime.browserViewPort
 const farmer = new Farmer({ browser, store, config, log, loginHint, onChange: () => broadcast(), onGameFound: addGameToConfig });
 store.onChange = () => broadcast();
 
+// Saved with the game so games without an event keep their picture after a restart.
+function boxArt(url) {
+  return typeof url === 'string' && url.startsWith('https://static-cdn.jtvnw.net/') ? url : undefined;
+}
+
 function addGameToConfig(game) {
   if (config.games.some((g) => g.id === game.id)) return log(`${game.name} is already selected.`);
   config.games.push(game);
@@ -70,7 +75,8 @@ function snapshot() {
           claimed: d.claimed,
         })),
       }));
-    return { id, name: game.name ?? id, boxArtURL: game.boxArtURL, priority: selected.get(id) ?? null, dormant: farmer.dormant.get(id) ?? null, campaigns };
+    const saved = config.games.find((g) => g.id === id);
+    return { id, name: game.name ?? id, boxArtURL: game.boxArtURL ?? saved?.boxArtURL, priority: selected.get(id) ?? null, dormant: farmer.dormant.get(id) ?? null, campaigns };
   });
   games.sort((a, b) => (a.priority ?? 1e9) - (b.priority ?? 1e9) || a.name.localeCompare(b.name));
 
@@ -104,10 +110,21 @@ const actions = {
     if (!Array.isArray(body.games)) throw new Error('games must be a list');
     config.games = body.games
       .filter((g) => g && typeof g.id === 'string')
-      .map((g) => ({ id: g.id, name: String(g.name ?? store.games.get(g.id)?.name ?? g.id) }));
+      .map((g) => ({ id: g.id, name: String(g.name ?? store.games.get(g.id)?.name ?? g.id), boxArtURL: boxArt(g.boxArtURL) }));
     saveConfig(config);
     log(config.games.length ? `Farming order: ${config.games.map((g) => g.name).join(' → ')}` : 'No games selected.');
     farmer.wake({ refresh: true });
+  },
+  async searchgames(body) {
+    const term = String(body.term ?? '').trim().slice(0, 80);
+    if (term.length < 2) return { games: [] };
+    const games = await browser.searchGames(term);
+    const words = term.split(/\s+/);
+    if (games.length || words.length < 2) return { games };
+    // Twitch finds nothing while the last word is half-typed ("hollow kn"),
+    // so search without it and keep the names that match what was typed.
+    const looser = await browser.searchGames(words.slice(0, -1).join(' '));
+    return { games: looser.filter((g) => g.name.toLowerCase().includes(term.toLowerCase())) };
   },
   addgame(body) {
     const name = String(body.name ?? '').trim();

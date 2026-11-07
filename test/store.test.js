@@ -108,3 +108,18 @@ test('live streams from a drops directory listing are recorded', () => {
   });
   assert.equal(store.streams.get('goodstreamer').viewers, 42);
 });
+
+test('category search results keep only the games section, in order', () => {
+  const store = new Store();
+  const game = (id, name) => ({ id, name, displayName: name, boxArtURL: `https://x/${id}.jpg`, __typename: 'Game' });
+  store.ingest({
+    data: {
+      searchFor: {
+        channels: { edges: [{ item: { login: 'someone', stream: { game: game('509658', 'Just Chatting') } } }], __typename: 'SearchForResultUsers' },
+        games: { edges: [{ item: game('490744', 'Stardew Valley') }, { item: game('1390321140', 'Pico Valley') }], __typename: 'SearchForResultGames' },
+      },
+    },
+  });
+  assert.deepEqual(store.lastSearch.games.map((g) => g.name), ['Stardew Valley', 'Pico Valley']);
+  assert.equal(store.games.get('490744').name, 'Stardew Valley');
+});

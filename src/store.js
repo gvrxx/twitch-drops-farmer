@@ -10,6 +10,7 @@ export class Store {
   streams = new Map(); // login -> live stream seen in a directory listing
   channels = new Map(); // login -> { live, gameId, seenAt } from a channel page
   user = null;
+  lastSearch = null; // { at, games } from the most recent category search page
   onChange = () => {};
 
   ingest(json) {
@@ -35,6 +36,13 @@ export class Store {
     if (!node || typeof node !== 'object') return;
 
     const type = node.__typename;
+    if (type === 'SearchForResultGames') {
+      const games = (node.edges ?? []).map((e) => e?.item).filter((g) => g?.id);
+      this.lastSearch = {
+        at: Date.now(),
+        games: games.map((g) => ({ id: g.id, name: g.displayName ?? g.name, boxArtURL: g.boxArtURL ?? null })),
+      };
+    }
     if (node.currentUser?.id && node.currentUser.login) {
       const u = node.currentUser;
       this.user = { id: u.id, login: u.login, displayName: u.displayName ?? (this.user?.id === u.id ? this.user.displayName : u.login) };

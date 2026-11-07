@@ -223,7 +223,8 @@ export class Farmer {
       const nextCheckAt = Math.min(now + DORMANT_RECHECK_MS, start ? start + CAMPAIGN_START_GRACE_MS : Infinity);
       const reason = this.store.dormantReason(id, now);
       this.dormant.set(id, { reason, nextCheckAt });
-      this.log(`${this.#gameName(id)} is dormant (${reason}). Next check: ${formatTime(nextCheckAt)}.`);
+      // Rechecks that change nothing stay quiet; the dashboard shows the next check time.
+      if (entry?.reason !== reason) this.log(`${this.#gameName(id)} is dormant (${reason}). Next check: ${formatTime(nextCheckAt)}.`);
     }
     this.onChange();
   }

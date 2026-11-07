@@ -249,7 +249,7 @@ docker compose up -d --build
 These steps are the same on every system, once you've signed in and started the app as described in your install guide.
 
 1. **Wait for the games list.** The dashboard loads your active campaigns, which can take about a minute. Click **Refresh now** if the list stays empty.
-2. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first. For a game with no event right now, type its name in the **Add game** box.
+2. **Pick your games.** Tick the games you want to farm. Use the ↑/↓ arrows to set the order; the top game is farmed first. To add a game that isn't listed, such as one with no event right now, search for it in the box above the list and pick it from the suggestions.
 3. **Link any game accounts.** Most campaigns need this. If a campaign says **Game account not linked**, click its **Link account** link, connect your account, then click **Refresh now**. Twitch doesn't award drops for unlinked campaigns, so the farmer skips them.
 
 The farmer now starts on its own. Leave the app's browser running in the Dock or taskbar, because quitting it stops the app.
@@ -283,7 +283,8 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 | Control | What it does |
 | --- | --- |
 | Checkbox and ↑/↓ arrows | Choose which games to farm and in what order. |
-| **Add game** | Adds a game that isn't listed. Use its exact Twitch name. |
+| **Search box** | Finds any Twitch game as you type, including games with no event, and adds the one you pick. Results show whether a game has drops right now. |
+| **Hide drops / Show drops** | Folds a game's drop list, or the one under the stream you're watching, into a one-line summary. Your choice is remembered in that browser. |
 | **Refresh now** | Reloads campaigns and inventory immediately. |
 | **Pause / Resume** | Stops or restarts watching. The app stays open. |
 | **Auto-claim** | Turns automatic claiming on or off. |
@@ -356,7 +357,8 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | Error about the profile being in use | A browser window from an earlier run is still open. Close it and start again. |
 | No games appear | Make sure you're signed in, then click **Refresh now** and wait a minute. If it's still empty, Twitch may have changed its pages. |
 | Almost everything says **Game account not linked** | This is normal. Link only the games you play. |
-| "Couldn't find" a game in **Activity** | Use the exact name from the game's Twitch category page. |
+| "Couldn't find" a game in **Activity** | You pressed Enter without picking a suggestion, and the name didn't match. Type part of the name and pick it from the list instead. |
+| The search shows nothing for a game you know exists | Check the spelling. Results use Twitch's own search, so try the name as it appears on Twitch. |
 | A game stays **Dormant** though an event has started | Click **Refresh now**. If it's still dormant, check the reason shown next to the game. |
 | "Drop list loads once this game is selected" stays visible | Tick the game and click **Refresh now**. If it stays, the farmer still watches a drops-enabled stream for that game. |
 | **Game account not linked** | Click **Link account**, connect the account, then click **Refresh now**. |
