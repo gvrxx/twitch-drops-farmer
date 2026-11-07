@@ -43,7 +43,7 @@
   .game input { width: 18px; height: 18px; accent-color: var(--accent); }
   .campaigns { grid-column: 2 / -1; display: grid; gap: 10px; }
   .campaign { border-left: 3px solid var(--line); padding-left: 10px; }
-  .campaign.linked-no { border-left-color: var(--warn); }
+  .campaign.linked-no { border-left-color: var(--bad); }
   .drop { display: grid; grid-template-columns: 28px 1fr 90px; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; }
   .drop img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; background: var(--bar); }
   .bar { height: 6px; background: var(--bar); border-radius: 3px; overflow: hidden; margin-top: 3px; }
@@ -67,6 +67,7 @@
   .fold { padding: 2px 8px; font-size: 12px; color: var(--muted); }
   .summary { font-size: 13px; }
   .dormant { color: var(--warn); }
+  .dormant.unlinked, .unlinked-note { color: var(--bad); }
   label.toggle { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
   a { color: var(--accent); }
   @media (max-width: 560px) {
@@ -164,7 +165,7 @@
     const notLinked = c.accountConnected === false;
     return `<div class="campaign${notLinked ? ' linked-no' : ''}">
       <div><strong>${esc(c.name)}</strong> <span class="muted">· ${left(c.endAt)}${c.allowedChannels ? ` · ${c.allowedChannels} specific channels` : ''}</span></div>
-      ${notLinked ? `<div style="color:var(--warn)">Game account not linked; this campaign is skipped.${c.accountLinkURL ? ` <a href="${safeUrl(c.accountLinkURL)}" target="_blank" rel="noopener">Link account</a>` : ''}</div>` : ''}
+      ${notLinked ? `<div class="unlinked-note">Game account not linked; this campaign is skipped.${c.accountLinkURL ? ` <a href="${safeUrl(c.accountLinkURL)}" target="_blank" rel="noopener">Link account</a>` : ''}</div>` : ''}
       ${c.drops.length ? c.drops.map(dropRow).join('') : c.detailsLoaded ? '' : '<div class="muted">Drop list loads once this game is selected.</div>'}
     </div>`;
   }
@@ -203,7 +204,7 @@
         ${g.boxArtURL ? `<img src="${safeUrl(g.boxArtURL)}" alt="">` : '<img alt="">'}
         <div><div class="name">${on ? `${idx + 1}. ` : ''}${esc(g.name)}</div>
           <div class="muted">${g.campaigns.length} active campaign${g.campaigns.length === 1 ? '' : 's'}</div>
-          ${g.dormant ? `<div class="dormant">Dormant: ${esc(g.dormant.reason)} · next check ${new Date(g.dormant.nextCheckAt).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+          ${g.dormant ? `<div class="dormant${g.dormant.reason === 'Game account not linked' ? ' unlinked' : ''}">Dormant: ${esc(g.dormant.reason)} · next check ${new Date(g.dormant.nextCheckAt).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
           ${on && g.campaigns.some((c) => c.drops.length) ? foldButton(g.id, g.campaigns.reduce((n, c) => n + c.drops.length, 0)) : ''}</div>
         <div class="order">${on ? `<button data-act="up" ${idx === 0 ? 'disabled' : ''} aria-label="Higher priority">↑</button><button data-act="down" ${idx === sel.length - 1 ? 'disabled' : ''} aria-label="Lower priority">↓</button>` : ''}</div>
         ${on && g.campaigns.length ? `<div class="campaigns">${collapsed.has(g.id) ? dropSummary(g.campaigns) : g.campaigns.map(campaignBlock).join('')}</div>` : ''}

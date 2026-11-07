@@ -123,3 +123,49 @@ test('category search results keep only the games section, in order', () => {
   assert.deepEqual(store.lastSearch.games.map((g) => g.name), ['Stardew Valley', 'Pico Valley']);
   assert.equal(store.games.get('490744').name, 'Stardew Valley');
 });
+
+// A finished campaign leaves the inventory's in-progress list; only the claimed
+// rewards list (UserDropReward) says its drops were earned.
+function finishedCampaign(rewards) {
+  const store = new Store();
+  store.ingest({
+    data: {
+      user: {
+        dropCampaign: {
+          id: 'e1', name: 'Done', status: 'ACTIVE', startAt: '2026-11-03T14:00:00Z', endAt: '2099-01-01T00:00:00Z',
+          game: RUST, self: { isAccountConnected: true },
+          timeBasedDrops: [
+            { id: 'x1', name: 'Map', requiredMinutesWatched: 120, startAt: '2026-11-03T14:00:00Z', benefitEdges: [{ benefit: { id: 'b1', name: 'Map' } }], __typename: 'TimeBasedDrop' },
+            { id: 'x2', name: 'Helmet', requiredMinutesWatched: 180, startAt: '2026-11-03T14:00:00Z', benefitEdges: [{ benefit: { id: 'b2', name: 'Helmet' } }], __typename: 'TimeBasedDrop' },
+          ],
+          __typename: 'DropCampaign',
+        },
+      },
+    },
+  });
+  store.ingest({
+    data: {
+      currentUser: {
+        inventory: {
+          dropCampaignsInProgress: [],
+          gameEventDropsConnection: { edges: rewards.map(([id, at]) => ({ node: { id, benefit: { id }, lastAwardedAt: at, __typename: 'UserDropReward' } })) },
+        },
+      },
+    },
+  });
+  return store;
+}
+
+test('drops whose rewards are in the claimed list count as claimed after a restart', () => {
+  const store = finishedCampaign([['b1', '2026-11-07T09:53:11Z'], ['b2', '2026-11-07T10:54:32Z']]);
+  assert.ok(store.drops.get('x1').claimed && store.drops.get('x2').claimed);
+  assert.deepEqual(store.farmableCampaigns('263490'), []);
+  assert.equal(store.dormantReason('263490'), 'All drops earned');
+});
+
+test('a reward awarded before the drop started does not count as claimed', () => {
+  const store = finishedCampaign([['b1', '2026-10-01T00:00:00Z'], ['b2', '2026-11-07T10:54:32Z']]);
+  assert.equal(store.drops.get('x1').claimed, false);
+  assert.equal(store.drops.get('x2').claimed, true);
+  assert.equal(store.farmableCampaigns('263490').length, 1);
+});

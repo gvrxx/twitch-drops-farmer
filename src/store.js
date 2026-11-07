@@ -11,11 +11,27 @@ export class Store {
   channels = new Map(); // login -> { live, gameId, seenAt } from a channel page
   user = null;
   lastSearch = null; // { at, games } from the most recent category search page
+  rewards = new Map(); // benefit id -> time last awarded, from the inventory's claimed list
   onChange = () => {};
 
   ingest(json) {
     this.#walk(json, null);
+    this.#applyRewards();
     this.onChange();
+  }
+
+  // Once every drop in a campaign is claimed, Twitch drops the campaign from the
+  // inventory's in-progress list, so a fresh start can't see those drops were
+  // claimed. Their rewards still show in the claimed list: a drop counts as
+  // claimed when each of its rewards was awarded after the drop started.
+  #applyRewards() {
+    if (this.rewards.size === 0) return;
+    for (const drop of this.drops.values()) {
+      if (drop.claimed || !drop.benefitIds?.length) continue;
+      const start = Date.parse(drop.startAt ?? this.campaigns.get(drop.campaignId)?.startAt);
+      if (Number.isNaN(start)) continue;
+      if (drop.benefitIds.every((id) => this.rewards.get(id) >= start)) drop.claimed = true;
+    }
   }
 
   // Live progress pushed over the player page's websocket.
@@ -42,6 +58,11 @@ export class Store {
         at: Date.now(),
         games: games.map((g) => ({ id: g.id, name: g.displayName ?? g.name, boxArtURL: g.boxArtURL ?? null })),
       };
+    }
+    if (type === 'UserDropReward' && node.lastAwardedAt) {
+      const id = node.benefit?.id ?? node.id;
+      const at = Date.parse(node.lastAwardedAt);
+      if (id && !Number.isNaN(at)) this.rewards.set(id, Math.max(this.rewards.get(id) ?? 0, at));
     }
     if (node.currentUser?.id && node.currentUser.login) {
       const u = node.currentUser;
@@ -129,6 +150,8 @@ export class Store {
       benefit: benefit?.name ?? prev.benefit,
       image: benefit?.imageAssetURL ?? prev.image,
     };
+    const benefitIds = (d.benefitEdges ?? []).map((e) => e?.benefit?.id).filter(Boolean);
+    if (benefitIds.length) next.benefitIds = benefitIds;
     if (d.self) {
       next.current = d.self.currentMinutesWatched ?? next.current;
       next.claimed = d.self.isClaimed ?? next.claimed;

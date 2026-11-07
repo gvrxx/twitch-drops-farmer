@@ -44,6 +44,8 @@ Windows uses Edge and macOS uses Chrome when it's installed. Playwright's bundle
 
 Twitch's responses are matched by object type (`__typename`) rather than by query name, so renamed queries keep working. The campaigns list gives placeholder drops with no watch time, and full details only load when a game's section is expanded. Placeholder drops count as "details missing", not as "nothing to earn".
 
+Once every drop in a campaign is claimed, Twitch removes the campaign from the inventory's in-progress list. After a restart the app used to think those drops were unearned and farmed the game again. It now also reads the inventory's list of claimed rewards and matches each drop's reward IDs against it. A drop counts as claimed only if its rewards were awarded after the drop started, so a reward from an earlier campaign doesn't count.
+
 The game link under a stream can also be a "Streaming Together" link on collab streams, so the health check only accepts links to `/directory/`.
 
 ### A minimized browser still earns
