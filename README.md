@@ -2,6 +2,8 @@
 
 Earns Twitch Drops for the games you pick. It plays one eligible stream at a time in a real browser window (muted, 160p), moves to a new channel when a stream ends, raids away or changes game, and claims finished drops for you. You control it from a dashboard in your web browser.
 
+> **Paused (Nov 14, 2026): the app can't farm right now.** Twitch refuses to send the drop campaigns list to automated browsers ("failed integrity check"), while the same page works in a normal browser. Without that list the app has nothing to farm. It doesn't try to get around Twitch's check, and the project is paused until Twitch changes this. If you start the app anyway, the dashboard shows **Blocked by Twitch** while the block lasts and starts farming by itself if it lifts. See the [project history](docs/PROJECT-HISTORY.md#paused).
+
 > **Account risk:** automating watch time is against Twitch's Terms of Service. This tool keeps close to normal viewing (one real stream, no spoofed requests), but your account is still at risk. Use it at your own discretion.
 
 ## Contents
@@ -26,7 +28,9 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 
 ## Project status
 
-The full cycle works on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. Windows and Docker need more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
+**Paused:** Twitch currently blocks the campaign list in automated browsers, so nothing below can run end to end. The table shows where things stood before the block.
+
+The full cycle worked on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. Windows and Docker need more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
 
 | Part | Status |
 | --- | --- |

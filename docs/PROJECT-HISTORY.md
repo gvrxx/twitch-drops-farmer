@@ -2,6 +2,14 @@
 
 What was built, what we learned, and what's left. For install and usage steps, see the [README](../README.md).
 
+## Paused
+
+**Since Nov 14, 2026 the project is paused.** Twitch answers the app's request for the drop campaigns list with "failed integrity check" (`currentUser.dropCampaigns`). The same page works in a normal browser on the same account, so Twitch is turning away automated browsers on purpose. The inventory still loaded.
+
+That's the situation this project planned for from the start: the app doesn't hide its automation, and when Twitch refuses it, we don't work around the refusal. That rules out stealth browsers, borrowed integrity tokens, and reading the same data from other pages to get past the block. The app now reports **Blocked by Twitch** and retries every 30 minutes.
+
+To check later whether Twitch has changed this, start the app and look at the status. **Blocked by Twitch** means it's still blocked. If campaigns load, everything else still works as described below. If the block stays, the project needs a different approach that Twitch allows, not a workaround.
+
 ## What this project is
 
 Drops Farmer earns Twitch Drops for selected games. It plays one eligible stream at a time in a real browser, tracks progress, claims finished drops, and is controlled from a local dashboard.
@@ -95,7 +103,7 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 
 ## Still open
 
-- **Twitch blocks the campaign list (Nov 14, 2026).** The campaigns page now answers the app's browser with "failed integrity check" for `currentUser.dropCampaigns`, so the app sees 0 campaigns and can't farm. The inventory still loads. This is the case anticipated above: Twitch is turning away automated browsers. As agreed, the app doesn't work around it; it reports the block and retries every 30 minutes. Still to check: whether the same page works in a normal browser, and whether the block lasts.
+- **Twitch blocks the campaign list (Nov 14, 2026).** The project is paused because of this; see [Paused](#paused). A normal browser still shows the campaigns, so the block is aimed at automated browsers.
 
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
 - **Docker sign-in.** The browser view runs Chrome under automation, so Twitch will refuse a login there. A way to sign in normally in the container is needed. A session copied from a Mac or PC won't work, because cookies are encrypted per machine.
