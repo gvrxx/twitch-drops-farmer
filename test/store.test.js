@@ -169,3 +169,17 @@ test('a reward awarded before the drop started does not count as claimed', () =>
   assert.equal(store.drops.get('x2').claimed, true);
   assert.equal(store.farmableCampaigns('263490').length, 1);
 });
+
+test("Twitch's integrity refusal of the campaigns list is recorded", () => {
+  const store = new Store();
+  const since = Date.now();
+  store.ingest([{ errors: [{ message: 'failed integrity check', path: ['currentUser', 'dropCampaigns'], extensions: { code: 'IntegrityCheckFailed' } }], data: { currentUser: { dropCampaigns: null } } }]);
+  assert.equal(store.campaignsRefusedSince(since), true);
+  assert.equal(store.campaignsRefusedSince(Date.now() + 1), false);
+});
+
+test('an integrity refusal of something else does not count', () => {
+  const store = new Store();
+  store.ingest({ errors: [{ path: ['progress'], extensions: { code: 'IntegrityCheckFailed' } }] });
+  assert.equal(store.campaignsRefusedSince(0), false);
+});

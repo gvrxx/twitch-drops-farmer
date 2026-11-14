@@ -8,12 +8,13 @@ const CAMPAIGN_START_GRACE_MS = 5 * MIN; // lets Twitch mark a new campaign acti
 
 export class Farmer {
   paused = false;
-  phase = 'starting'; // starting | login | refreshing | searching | watching | idle | dormant | paused
+  phase = 'starting'; // starting | login | refreshing | searching | watching | idle | dormant | blocked | paused
   message = '';
   watching = null; // { login, displayName, gameId, campaignIds, since, stallSince, progressAtStart, lastVideoTime, badChecks, reloaded }
   lastCampaignRefresh = 0;
   lastInventoryRefresh = 0;
   dormant = new Map(); // gameId -> { reason, nextCheckAt } for selected games with nothing to farm
+  campaignsRefused = false; // Twitch refused the campaigns list at the last load (failed integrity check)
   #bad = new Map(); // login -> time until which we avoid it
   #wakeFn = null;
   #woken = false;
@@ -107,6 +108,20 @@ export class Farmer {
 
     const forced = await this.#refreshIfDue();
 
+    // Nothing to plan with. Most likely Twitch refused the list; otherwise the page came back empty.
+    if (this.store.campaigns.size === 0 && this.config.games.length) {
+      await this.#stopWatching();
+      if (this.campaignsRefused) {
+        this.#setPhase('blocked', `Twitch is refusing to send your drop campaigns to this browser (failed integrity check), so nothing can be farmed. Trying again in ${this.config.campaignRefreshMinutes} minutes.`);
+        await this.#sleep(this.config.campaignRefreshMinutes * MIN);
+      } else {
+        this.#setPhase('idle', "Twitch's campaigns page came back empty. Trying again in 5 minutes.");
+        await this.#sleep(5 * MIN);
+      }
+      this.#forceRefresh = true;
+      return;
+    }
+
     if (this.config.games.length === 0) {
       await this.#stopWatching();
       this.#setPhase('idle', 'Pick at least one game in the dashboard.');
@@ -186,9 +201,11 @@ export class Farmer {
 
     if (force || now - this.lastCampaignRefresh > this.config.campaignRefreshMinutes * MIN) {
       this.#setPhase('refreshing', 'Loading drop campaigns…');
+      const since = Date.now();
       await this.browser.loadCampaigns(this.config.games.map((g) => g.name));
       this.lastCampaignRefresh = Date.now();
-      this.log(`Loaded ${this.store.campaigns.size} campaigns.`);
+      this.#noteRefusal(this.store.campaignsRefusedSince(since));
+      this.log(`Loaded ${this.store.campaigns.size} campaigns.`, this.store.campaigns.size ? 'info' : 'warn');
     }
     if (force || this.#claimPending || now - this.lastInventoryRefresh > this.config.inventoryRefreshMinutes * MIN) {
       this.#claimPending = false;
@@ -203,6 +220,16 @@ export class Farmer {
     }
     if (this.phase === 'refreshing') this.#setPhase(this.watching ? 'watching' : 'searching');
     return force;
+  }
+
+  // Logs only when the refusal starts or stops, not on every retry.
+  #noteRefusal(refused) {
+    if (refused && !this.campaignsRefused) {
+      this.log('Twitch refused to send your drop campaigns (failed integrity check). It is blocking this automated browser from the campaign list.', 'error');
+    } else if (!refused && this.campaignsRefused) {
+      this.log('Twitch is sending drop campaigns again.', 'success');
+    }
+    this.campaignsRefused = refused;
   }
 
   // Marks selected games with nothing to farm as dormant, and wakes any that

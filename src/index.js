@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { DATA_DIR, loadConfig, loadRuntime, saveConfig } from './config.js';
 import { Farmer } from './farmer.js';
+import { ActivityLog } from './activity.js';
 import { History } from './history.js';
 import { startServer } from './server.js';
 import { Store } from './store.js';
@@ -11,16 +12,20 @@ const config = loadConfig();
 const runtime = loadRuntime(config);
 const store = new Store();
 const history = new History(path.join(DATA_DIR, 'history.json'));
-const logLines = [];
+// Also written to activity.log, so you can see what happened while you were away or after a restart.
+const activity = new ActivityLog(path.join(DATA_DIR, 'activity.log'));
+const logLines = activity.recent(200);
 let broadcast = () => {};
 
 function log(msg, level = 'info') {
   const line = { t: Date.now(), level, msg };
   logLines.push(line);
   if (logLines.length > 200) logLines.shift();
+  activity.append(line);
   console.log(`[${new Date(line.t).toLocaleTimeString()}] ${msg}`);
   broadcast();
 }
+log('App started.');
 
 const browser = new TwitchBrowser({
   profileDir: path.join(DATA_DIR, 'browser-profile'),
@@ -113,6 +118,7 @@ function snapshot() {
       videoOk: w.videoOk ?? true,
       pageHidden: w.pageHidden,
     },
+    campaignsRefused: farmer.campaignsRefused,
     lastCampaignRefresh: farmer.lastCampaignRefresh,
     lastInventoryRefresh: farmer.lastInventoryRefresh,
     autoClaim: config.autoClaim,

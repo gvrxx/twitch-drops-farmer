@@ -2,3 +2,5 @@ node_modules/
 browser-profile/
 config.json
 history.json
+activity.log
+activity.old.log

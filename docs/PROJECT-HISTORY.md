@@ -24,6 +24,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 12. **Ending-soonest order.** By default the game whose campaign ends first is farmed first, so drops don't expire while another game is watched. Your own order is still available.
 13. **Needs linking.** One list of every campaign skipped for an unlinked game account, with its link.
 14. **History.** Claimed drops and watch time per game are saved to `history.json` and shown on the dashboard.
+15. **Blocked-by-Twitch status and saved activity.** The app reports when Twitch refuses the campaign list, and the activity log is kept in `activity.log` across restarts.
 
 ## What we learned
 
@@ -93,6 +94,8 @@ Only 2 of those 119 campaigns were ready to farm. The rest needed a game account
 CI runs unit tests and a startup test on macOS, Windows and Linux on every push. It also builds the Docker image and checks that it starts.
 
 ## Still open
+
+- **Twitch blocks the campaign list (Nov 14, 2026).** The campaigns page now answers the app's browser with "failed integrity check" for `currentUser.dropCampaigns`, so the app sees 0 campaigns and can't farm. The inventory still loads. This is the case anticipated above: Twitch is turning away automated browsers. As agreed, the app doesn't work around it; it reports the block and retries every 30 minutes. Still to check: whether the same page works in a normal browser, and whether the block lasts.
 
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
 - **Docker sign-in.** The browser view runs Chrome under automation, so Twitch will refuse a login there. A way to sign in normally in the container is needed. A session copied from a Mac or PC won't work, because cookies are encrypted per machine.

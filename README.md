@@ -278,6 +278,7 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 | **Farming** | Watching a stream. The channel and drop progress are shown below. |
 | **Idle** | A selected game has drops, but no eligible stream is live. It checks again every 5 minutes. |
 | **Dormant** | None of your selected games have drops to earn. See [Dormant mode](#dormant-mode). |
+| **Blocked by Twitch** | Twitch refused to send your drop campaigns to the app's browser ("failed integrity check"). Nothing can be farmed. The app tries again every 30 minutes. See [Troubleshooting](#troubleshooting). |
 | **Paused** | You paused it. |
 
 | Control | What it does |
@@ -295,7 +296,7 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 
 **History** shows the drops claimed while the app was running, newest first, and how long each game was watched. Only time when the video was actually playing counts. It's saved in `history.json` in the project folder (the data folder on Docker), so it survives restarts. Drops claimed before the app first started aren't listed. Delete the file to start over.
 
-**Activity** at the bottom shows what the app has been doing. Check it first if something looks wrong. It's cleared on restart.
+**Activity** at the bottom shows what the app has been doing. Check it first if something looks wrong. It's also written to `activity.log` in the project folder (the data folder on Docker), so the last 200 lines are still there after a restart, and you can open the file to see what happened while you were away. Past 1 MB it's moved to `activity.old.log` and a new file starts.
 
 ## Dormant mode
 
@@ -355,6 +356,7 @@ Then run the `docker run` command from [step 3](#3-start-the-container) again. Y
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
 | Twitch says your browser isn't supported at login | Twitch refuses logins in automated browsers. Stop the app, run `login.bat` or `bash login.command`, sign in there, then start the app again. |
+| App says **Blocked by Twitch**, or loads 0 campaigns | Twitch is refusing to send the drop campaigns list to the app's browser. Its anti-bot check ("failed integrity check") flags automated browsers. Open https://www.twitch.tv/drops/campaigns in your normal browser. If campaigns show there, the block is aimed at automated browsers and the app can't farm until Twitch lifts it. If they're missing there too, it's a Twitch problem that should clear on its own. The app doesn't try to get around this check. |
 | App says **Login needed** | The saved login is missing or expired. Stop the app and run the sign-in step again. If that doesn't help, delete `browser-profile` and repeat it. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
 | Dashboard doesn't open | Go to http://127.0.0.1:8411 yourself. |

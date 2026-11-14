@@ -12,6 +12,7 @@ export class Store {
   user = null;
   lastSearch = null; // { at, games } from the most recent category search page
   rewards = new Map(); // benefit id -> time last awarded, from the inventory's claimed list
+  refusals = new Map(); // data path Twitch refused with a failed integrity check -> when it last did
   onChange = () => {};
 
   ingest(json) {
@@ -52,6 +53,12 @@ export class Store {
     if (!node || typeof node !== 'object') return;
 
     const type = node.__typename;
+    // Twitch answers some requests from automated browsers with this error instead of data.
+    if (Array.isArray(node.errors)) {
+      for (const e of node.errors) {
+        if (e?.extensions?.code === 'IntegrityCheckFailed') this.refusals.set((e.path ?? []).join('.'), Date.now());
+      }
+    }
     if (type === 'SearchForResultGames') {
       const games = (node.edges ?? []).map((e) => e?.item).filter((g) => g?.id);
       this.lastSearch = {
@@ -165,6 +172,12 @@ export class Store {
   }
 
   // ---- derived views ----
+
+  // True when Twitch refused the drop campaigns list at or after `since`.
+  campaignsRefusedSince(since) {
+    for (const [path, at] of this.refusals) if (at >= since && /(^|\.)dropCampaigns$/.test(path)) return true;
+    return false;
+  }
 
   campaignDrops(campaign) {
     return campaign.dropIds.map((id) => this.drops.get(id)).filter(Boolean);

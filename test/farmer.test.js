@@ -10,7 +10,7 @@ const until = async (check) => {
 };
 
 // A browser stand-in where the campaigns page shows whatever `listing` holds.
-function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4, farmOrder, onClaim }) {
+function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4, farmOrder, onClaim, refuse = false }) {
   const store = new Store();
   const browser = new EventEmitter();
   const calls = { campaigns: 0, reloads: 0 };
@@ -24,6 +24,10 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
     },
     async loadCampaigns() {
       calls.campaigns++;
+      if (browser.refuse) {
+        store.ingest({ errors: [{ path: ['currentUser', 'dropCampaigns'], extensions: { code: 'IntegrityCheckFailed' } }], data: { currentUser: { dropCampaigns: null } } });
+        return;
+      }
       store.ingest({ data: { currentUser: { id: '1', login: 'me', dropCampaigns: browser.listing } } });
     },
     // The inventory page, when a test sets one.
@@ -49,8 +53,11 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
     farmer.wake();
     await running;
   };
+  const logs = [];
+  farmer.log = (m, level) => logs.push({ m, level });
+  browser.refuse = refuse;
   const running = farmer.run();
-  return { farmer, browser, calls, stop };
+  return { farmer, browser, calls, stop, logs };
 }
 
 const other = { id: 'c9', status: 'ACTIVE', endAt: '2099-01-01T00:00:00Z', game: { id: 'other', displayName: 'Other', __typename: 'Game' }, self: { isAccountConnected: true }, __typename: 'DropCampaign' };
@@ -195,5 +202,26 @@ test('drops claimed while running are reported once; earlier claims are not', as
   farmer.wake({ refresh: true });
   await new Promise((r) => setTimeout(r, 40));
   assert.deepEqual(claims, ['new']);
+  await stop();
+});
+
+test('a refused campaigns list shows as blocked, not as no live streams', async () => {
+  const { farmer, logs, stop } = setup({ listing: [event], refuse: true });
+  await until(() => farmer.phase === 'blocked');
+  assert.equal(farmer.campaignsRefused, true);
+  assert.match(farmer.message, /integrity check/);
+  assert.equal(farmer.dormant.size, 0);
+  assert.equal(logs.filter((l) => /refused/.test(l.m)).length, 1);
+  await stop();
+});
+
+test('farming resumes once Twitch sends the campaigns again', async () => {
+  const { farmer, browser, logs, stop } = setup({ listing: [event], streams: [stream], refuse: true });
+  await until(() => farmer.phase === 'blocked');
+  browser.refuse = false;
+  farmer.wake({ refresh: true });
+  await until(() => farmer.phase === 'watching');
+  assert.equal(farmer.campaignsRefused, false);
+  assert.ok(logs.some((l) => /sending drop campaigns again/.test(l.m)));
   await stop();
 });

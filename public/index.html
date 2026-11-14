@@ -28,6 +28,8 @@
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 12px; }
   .pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
   .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .pill.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+  .alert { color: var(--bad); border-left: 3px solid var(--bad); padding-left: 10px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
   .muted { color: var(--muted); }
@@ -166,8 +168,8 @@
 
   function renderStatus() {
     const s = $('status');
-    const labels = { starting: 'Starting', login: 'Login needed', refreshing: 'Refreshing', searching: 'Searching', watching: 'Farming', idle: 'Idle', dormant: 'Dormant', paused: 'Paused' };
-    s.className = 'pill' + (state.phase === 'watching' ? ' ok' : ['login', 'idle', 'dormant', 'paused'].includes(state.phase) ? ' warn' : '');
+    const labels = { starting: 'Starting', login: 'Login needed', refreshing: 'Refreshing', searching: 'Searching', watching: 'Farming', idle: 'Idle', dormant: 'Dormant', blocked: 'Blocked by Twitch', paused: 'Paused' };
+    s.className = 'pill' + (state.phase === 'watching' ? ' ok' : state.phase === 'blocked' ? ' bad' : ['login', 'idle', 'dormant', 'paused'].includes(state.phase) ? ' warn' : '');
     s.lastElementChild.textContent = labels[state.phase] ?? state.phase;
     $('pause').textContent = state.paused ? 'Resume' : 'Pause';
     $('autoclaim').checked = state.autoClaim;
@@ -197,7 +199,11 @@
 
   function renderNow() {
     const w = state.watching;
-    const msg = state.message ? `<div class="muted">${esc(state.message)}</div>` : '';
+    const refused = state.campaignsRefused
+      ? '<div class="alert">Twitch refused to send your drop campaigns at the last check ("failed integrity check"). It is blocking this automated browser from the campaign list, so new campaigns and progress can\'t be seen. See Troubleshooting in the README.</div>'
+      : '';
+    // The blocked status message repeats the alert, so show just the alert then.
+    const msg = refused + (state.message && !(refused && state.phase === 'blocked') ? `<div class="muted">${esc(state.message)}</div>` : '');
     if (!w) {
       $('now').innerHTML = `<div class="now-head"><strong>Not watching anything</strong></div>${msg}
         <div class="muted">Campaigns checked ${ago(state.lastCampaignRefresh)} · inventory checked ${ago(state.lastInventoryRefresh)}${state.user ? ` · logged in as ${esc(state.user.displayName ?? state.user.login)}` : ''}</div>`;
@@ -233,7 +239,7 @@
       ? '· tick to farm; numbers show the farming order, ↑↓ breaks ties'
       : '· tick to farm, top = highest priority';
     if (!state.games.length) {
-      $('games').innerHTML = `<div class="empty muted">${state.phase === 'login' ? 'Log in to Twitch to load campaigns.' : 'No active drop campaigns found yet.'}</div>`;
+      $('games').innerHTML = `<div class="empty muted">${state.phase === 'login' ? 'Log in to Twitch to load campaigns.' : state.campaignsRefused ? 'Twitch refused to send the campaign list.' : 'No active drop campaigns found yet.'}</div>`;
       return;
     }
     const sel = selectedGames();
@@ -263,7 +269,8 @@
       .filter((r) => r.camps.length)
       .sort((a, b) => sel.has(b.g.id) - sel.has(a.g.id) || a.g.name.localeCompare(b.g.name));
     if (!rows.length) {
-      $('linking').innerHTML = `<div class="empty muted">${state.games.length ? 'Every active campaign is linked.' : 'Campaigns show here once they load.'}</div>`;
+      const loaded = state.games.some((g) => g.campaigns.length);
+      $('linking').innerHTML = `<div class="empty muted">${loaded ? 'Every active campaign is linked.' : 'Campaigns show here once they load.'}</div>`;
       return;
     }
     const mine = rows.filter((r) => sel.has(r.g.id));
@@ -311,7 +318,9 @@
   function renderLog() {
     const el = $('log');
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
-    el.innerHTML = state.log.map((l) => `<div class="${l.level}"><span class="muted">${new Date(l.t).toLocaleTimeString()}</span> ${esc(l.msg)}</div>`).join('') || '<div class="muted">Nothing yet.</div>';
+    const today = new Date().toDateString();
+    const when = (t) => new Date(t).toDateString() === today ? new Date(t).toLocaleTimeString() : new Date(t).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.innerHTML = state.log.map((l) => `<div class="${l.level}"><span class="muted">${when(l.t)}</span> ${esc(l.msg)}</div>`).join('') || '<div class="muted">Nothing yet.</div>';
     if (atBottom) el.scrollTop = el.scrollHeight;
   }
 
