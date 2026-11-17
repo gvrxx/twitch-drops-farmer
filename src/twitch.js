@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { chromium } from 'playwright';
+import { openSignInBrowser } from './signin.js';
 
 const TWITCH = 'https://www.twitch.tv';
 const GATE_BUTTONS = [
@@ -13,9 +14,14 @@ const GATE_BUTTONS = [
 //    images and fonts blocked so it never counts as a second viewer.
 export class TwitchBrowser extends EventEmitter {
   #searchQueue = Promise.resolve();
+  #signingIn = false;
+  #signInWindow = null;
 
-  constructor({ profileDir, headless, channel, minimized, store, log }) {
+  // signInWindow: open a normal browser for signing in from the app itself
+  // (Docker, through the browser view) instead of a separate sign-in step.
+  constructor({ profileDir, headless, channel, minimized, store, log, signInWindow = false }) {
     super();
+    this.signsInItself = signInWindow;
     this.minimized = minimized;
     this.profileDir = profileDir;
     this.headless = headless;
@@ -42,6 +48,7 @@ export class TwitchBrowser extends EventEmitter {
       ],
     });
     this.ctx.on('close', () => {
+      if (this.#signingIn) return; // closed on purpose to free the profile for signing in
       this.closed = true;
       this.emit('closed');
     });
@@ -85,6 +92,39 @@ export class TwitchBrowser extends EventEmitter {
   async isLoggedIn() {
     const cookies = await this.ctx.cookies(TWITCH);
     return cookies.some((c) => c.name === 'auth-token' && c.value);
+  }
+
+  // Closes the app's browser, opens a normal one on the same profile for you to
+  // sign in, and starts the app's browser again once that window is closed.
+  // Resolves with how long the sign-in window stayed open.
+  async signIn() {
+    this.#signingIn = true;
+    const opened = Date.now();
+    try {
+      await this.ctx.close().catch(() => {});
+      await new Promise((resolve, reject) => {
+        const child = openSignInBrowser(this.profileDir, { container: true });
+        this.#signInWindow = child;
+        child.on('error', reject);
+        child.on('exit', resolve);
+      });
+    } finally {
+      this.#signInWindow = null;
+      await this.start();
+      this.#signingIn = false;
+    }
+    return Date.now() - opened;
+  }
+
+  // The dashboard's "Done signing in" button: closes the sign-in window.
+  finishSignIn() {
+    if (!this.#signInWindow) return false;
+    this.#signInWindow.kill('SIGTERM');
+    return true;
+  }
+
+  get signingIn() {
+    return !!this.#signInWindow;
   }
 
   async openLogin() {

@@ -98,6 +98,7 @@
     <span id="status" class="pill"><span class="dot"></span><span>Connecting…</span></span>
     <label class="toggle"><input type="checkbox" id="autoclaim"> Auto-claim</label>
     <a id="view" class="button" target="_blank" rel="noopener" hidden>Browser view</a>
+    <button id="signindone" hidden>Done signing in</button>
     <button id="refresh">Refresh now</button>
     <button id="pause" class="primary">Pause</button>
   </header>
@@ -175,6 +176,7 @@
     $('autoclaim').checked = state.autoClaim;
     const view = $('view');
     view.hidden = !state.browserViewPort;
+    $('signindone').hidden = !state.signingIn;
     if (state.browserViewPort) view.href = `${location.protocol}//${location.hostname}:${state.browserViewPort}/vnc.html?autoconnect=1&resize=scale`;
   }
 
@@ -435,6 +437,7 @@
     hideSuggestions();
   });
   $('refresh').onclick = () => post('refresh');
+  $('signindone').onclick = () => post('signindone');
   $('pause').onclick = () => post(state?.paused ? 'resume' : 'pause');
   $('autoclaim').onchange = (e) => post('autoclaim', { enabled: e.target.checked });
 

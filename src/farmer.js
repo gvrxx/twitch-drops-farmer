@@ -183,9 +183,24 @@ export class Farmer {
   async #waitForLogin() {
     this.watching = null;
     this.#setPhase('login', this.loginHint);
-    this.log('Not logged in. Waiting for you to log in to Twitch.');
-    await this.browser.openLogin();
-    while (!(await this.browser.isLoggedIn())) await new Promise((r) => setTimeout(r, 3000));
+    if (this.browser.signsInItself) {
+      this.log('Not logged in. Opening a sign-in window in the browser view.');
+      for (;;) {
+        const openFor = await this.browser.signIn();
+        if (await this.browser.isLoggedIn()) break;
+        if (openFor < 5000) {
+          // Closed by itself straight away: the browser likely failed to start.
+          this.log("The sign-in window closed straight away. Trying again in 30 seconds.", 'warn');
+          await new Promise((r) => setTimeout(r, 30_000));
+        } else {
+          this.log('Still not logged in. Opening the sign-in window again.', 'warn');
+        }
+      }
+    } else {
+      this.log('Not logged in. Waiting for you to log in to Twitch.');
+      await this.browser.openLogin();
+      while (!(await this.browser.isLoggedIn())) await new Promise((r) => setTimeout(r, 3000));
+    }
     this.log('Logged in.');
     this.#forceRefresh = true;
     await this.browser.stopWatching();

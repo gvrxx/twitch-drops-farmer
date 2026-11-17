@@ -10,7 +10,7 @@ const until = async (check) => {
 };
 
 // A browser stand-in where the campaigns page shows whatever `listing` holds.
-function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4, farmOrder, onClaim, refuse = false }) {
+function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = [], playerReloadHours = 4, farmOrder, onClaim, refuse = false, prepare = () => {} }) {
   const store = new Store();
   const browser = new EventEmitter();
   const calls = { campaigns: 0, reloads: 0 };
@@ -56,6 +56,7 @@ function setup({ listing, games = [{ id: 'g1', name: 'Quiet Game' }], streams = 
   const logs = [];
   farmer.log = (m, level) => logs.push({ m, level });
   browser.refuse = refuse;
+  prepare(browser);
   const running = farmer.run();
   return { farmer, browser, calls, stop, logs };
 }
@@ -223,5 +224,32 @@ test('farming resumes once Twitch sends the campaigns again', async () => {
   await until(() => farmer.phase === 'watching');
   assert.equal(farmer.campaignsRefused, false);
   assert.ok(logs.some((l) => /sending drop campaigns again/.test(l.m)));
+  await stop();
+});
+
+test('Docker sign-in reopens the window until you are logged in, then farms', async () => {
+  let loggedIn = false;
+  let windows = 0;
+  const { farmer, logs, stop } = setup({
+    listing: [event],
+    streams: [stream],
+    prepare(browser) {
+      browser.signsInItself = true;
+      browser.isLoggedIn = async () => {
+        if (browser.closed) throw new Error('closed');
+        return loggedIn;
+      };
+      // The first window is closed without signing in; the second one signs in.
+      browser.signIn = async () => {
+        windows++;
+        if (windows === 2) loggedIn = true;
+        return 60_000;
+      };
+    },
+  });
+  await until(() => farmer.phase === 'watching');
+  assert.equal(windows, 2);
+  assert.ok(logs.some((l) => /Opening the sign-in window again/.test(l.m)));
+  assert.ok(logs.some((l) => l.m === 'Logged in.'));
   await stop();
 });

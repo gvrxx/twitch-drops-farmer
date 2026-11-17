@@ -33,11 +33,13 @@ const browser = new TwitchBrowser({
   channel: runtime.browserChannel,
   // Docker's browser view needs the window on screen.
   minimized: config.minimizeBrowser && !runtime.browserViewPort,
+  // Docker: sign in through the browser view in a normal (non-automated) Chrome.
+  signInWindow: !!runtime.browserViewPort,
   store,
   log,
 });
 const loginHint = runtime.browserViewPort
-  ? 'Open the browser view (button above) and log in to Twitch there. Your login is saved for next time.'
+  ? 'Open the browser view (button above) and log in to Twitch in the Chrome window there. Then close that window with the X at its top right, or click Done signing in. Your login is saved for next time.'
   : 'Twitch refuses logins in this automated window. Close it, run the login step (login.command or login.bat), then start the app again.';
 const gameName = (id) => store.games.get(id)?.name ?? config.games.find((g) => g.id === id)?.name ?? id;
 const farmer = new Farmer({
@@ -125,6 +127,7 @@ function snapshot() {
     farmOrder: config.farmOrder,
     history: history.snapshot(),
     browserViewPort: runtime.browserViewPort,
+    signingIn: browser.signingIn,
     games,
     log: logLines.slice(-80),
   };
@@ -167,6 +170,9 @@ const actions = {
     saveConfig(config);
     log(config.farmOrder === 'ending' ? 'Farming order: campaigns ending soonest first.' : 'Farming order: your game order.');
     farmer.wake();
+  },
+  signindone() {
+    if (!browser.finishSignIn()) throw new Error('No sign-in window is open');
   },
   refresh() {
     farmer.wake({ refresh: true });

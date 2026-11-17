@@ -1,34 +1,19 @@
-// Twitch refuses logins from automated browsers, so sign-in happens here: a
-// normal browser window with no automation attached, using the app's profile.
-// The app then reuses that saved session.
-import { spawn } from 'node:child_process';
-import fs from 'node:fs';
+// Sign-in step for Windows, macOS and Linux desktops: opens a normal browser
+// window on the app's profile so you can log in to Twitch yourself.
+// (Docker does this from the app itself; see TwitchBrowser.signIn.)
 import path from 'node:path';
 import { DATA_DIR } from './config.js';
-
-const BROWSERS = {
-  darwin: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'],
-  win32: [
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-  ],
-  linux: ['/usr/bin/google-chrome', '/usr/bin/chromium'],
-};
-
-const browser = (BROWSERS[process.platform] ?? []).find((p) => fs.existsSync(p));
-if (!browser) {
-  console.error('No supported browser found. Install Google Chrome (Microsoft Edge on Windows) and try again.');
-  process.exit(1);
-}
+import { openSignInBrowser } from './signin.js';
 
 const quit = process.platform === 'darwin' ? 'quit it with Cmd+Q' : 'close the window';
+let child;
+try {
+  child = openSignInBrowser(path.join(DATA_DIR, 'browser-profile'));
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
 console.log(`Log in to Twitch in the window that opens, then ${quit}.`);
-
-const child = spawn(
-  browser,
-  [`--user-data-dir=${path.join(DATA_DIR, 'browser-profile')}`, '--no-first-run', '--no-default-browser-check', 'https://www.twitch.tv/login'],
-  { stdio: 'ignore' },
-);
 child.on('error', (err) => {
   console.error(`Couldn't open the browser: ${err.message}`);
   process.exit(1);

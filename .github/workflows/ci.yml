@@ -40,4 +40,16 @@ jobs:
           docker logs farmer
           [ "${ok:-}" = 1 ] || { echo "Dashboard never reached the login phase"; exit 1; }
           curl -sf localhost:6080/vnc.html > /dev/null || { echo "Browser view not reachable"; exit 1; }
-          docker exec farmer sh -c 'ps aux | grep -E "[c]hrome" | head -1'
+      - name: Check the sign-in window is a normal browser, and reopens until signed in
+        run: |
+          state() { curl -sf localhost:8411/api/state; }
+          wait_for() { for i in $(seq 1 45); do state | grep -q "$1" && return 0; sleep 2; done; echo "Timed out waiting for $1"; docker logs farmer; exit 1; }
+          # The sign-in window: Chrome on the app's profile, with no automation attached.
+          wait_for '"signingIn":true'
+          docker exec farmer sh -c 'for p in /proc/[0-9]*; do tr "\0" " " < $p/cmdline 2>/dev/null; echo; done' | grep "user-data-dir=/data/browser-profile" | grep -v -e "--type=" -e remote-debugging | tee /tmp/signin.txt
+          grep -q "twitch.tv/login" /tmp/signin.txt || { echo "No normal sign-in browser running"; exit 1; }
+          # Closing it without signing in starts the app's browser and opens the window again.
+          curl -sf -X POST -H 'content-type: application/json' -d '{}' localhost:8411/api/signindone
+          wait_for 'Opening the sign-in window again'
+          wait_for '"signingIn":true'
+          docker logs farmer
