@@ -49,6 +49,7 @@ jobs:
           docker exec farmer sh -c 'for p in /proc/[0-9]*; do tr "\0" " " < $p/cmdline 2>/dev/null; echo; done' | grep "user-data-dir=/data/browser-profile" | grep -v -e "--type=" -e remote-debugging | tee /tmp/signin.txt
           grep -q "twitch.tv/login" /tmp/signin.txt || { echo "No normal sign-in browser running"; exit 1; }
           # Closing it without signing in starts the app's browser and opens the window again.
+          sleep 10
           curl -sf -X POST -H 'content-type: application/json' -d '{}' localhost:8411/api/signindone
           wait_for 'Opening the sign-in window again'
           wait_for '"signingIn":true'

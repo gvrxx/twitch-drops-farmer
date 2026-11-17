@@ -33,5 +33,6 @@ export function openSignInBrowser(profileDir, { container = false } = {}) {
     args.push('--no-sandbox', '--window-position=0,0', '--window-size=1280,800');
   }
   args.push('https://www.twitch.tv/login');
-  return spawn(browser, args, { stdio: 'ignore' });
+  // Error output is kept so a browser that fails to start can say why.
+  return spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'] });
 }

@@ -16,6 +16,7 @@ export class TwitchBrowser extends EventEmitter {
   #searchQueue = Promise.resolve();
   #signingIn = false;
   #signInWindow = null;
+  #closedFromDashboard = false;
 
   // signInWindow: open a normal browser for signing in from the app itself
   // (Docker, through the browser view) instead of a separate sign-in step.
@@ -96,15 +97,21 @@ export class TwitchBrowser extends EventEmitter {
 
   // Closes the app's browser, opens a normal one on the same profile for you to
   // sign in, and starts the app's browser again once that window is closed.
-  // Resolves with how long the sign-in window stayed open.
+  // Resolves with { failed, errors }: failed when the window closed by itself
+  // within seconds (the browser likely couldn't start), with its last error lines.
   async signIn() {
     this.#signingIn = true;
+    this.#closedFromDashboard = false;
     const opened = Date.now();
+    let errors = '';
     try {
       await this.ctx.close().catch(() => {});
       await new Promise((resolve, reject) => {
         const child = openSignInBrowser(this.profileDir, { container: true });
         this.#signInWindow = child;
+        child.stderr?.on('data', (chunk) => {
+          errors = (errors + chunk).slice(-2000);
+        });
         child.on('error', reject);
         child.on('exit', resolve);
       });
@@ -113,12 +120,14 @@ export class TwitchBrowser extends EventEmitter {
       await this.start();
       this.#signingIn = false;
     }
-    return Date.now() - opened;
+    const failed = !this.#closedFromDashboard && Date.now() - opened < 5000;
+    return { failed, errors: errors.trim().split('\n').slice(-3).join(' | ') };
   }
 
   // The dashboard's "Done signing in" button: closes the sign-in window.
   finishSignIn() {
     if (!this.#signInWindow) return false;
+    this.#closedFromDashboard = true;
     this.#signInWindow.kill('SIGTERM');
     return true;
   }

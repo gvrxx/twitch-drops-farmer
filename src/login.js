@@ -14,6 +14,7 @@ try {
   process.exit(1);
 }
 console.log(`Log in to Twitch in the window that opens, then ${quit}.`);
+child.stderr?.resume(); // not needed here; drained so a full pipe can't stall the browser
 child.on('error', (err) => {
   console.error(`Couldn't open the browser: ${err.message}`);
   process.exit(1);

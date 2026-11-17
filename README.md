@@ -40,7 +40,7 @@ The full cycle worked on macOS with a real Twitch account: sign in, find a strea
 | Earning watch time and auto-claiming drops | Works on macOS |
 | Dormant mode and adding games with no event | Works on macOS. A full 24-hour wait is covered by automated tests, not waited out live. |
 | Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
-| Docker | Builds and starts in automated tests. **You can't sign in there yet**, and it hasn't run on Unraid. |
+| Docker | Builds and starts in automated tests, and the sign-in window opens and reopens as it should. Signing in to a real account and running on Unraid haven't been tried. |
 | Stream reload for long runs | Works on macOS |
 | Minimized browser that doesn't take focus | Works on macOS. The stream keeps playing and earning while minimized. Not tried on Windows. |
 | Surviving the computer sleeping | Works on macOS. Nothing is earned while asleep, and it picks up again on wake. |
@@ -186,7 +186,7 @@ Sign in with Google Chrome or Chromium installed on your system. Stop the app, r
 
 ## Install on Unraid (Docker)
 
-> **Not usable yet:** Twitch refuses logins in automated browsers, and the browser view is one. Until there's a way to sign in normally inside the container, you can't log in here. Everything below is ready for when that's solved.
+> **Like the other systems, it can't farm while Twitch blocks the campaign list** (see the note at the top). Signing in through the browser view works the same way as on a desktop, so it's ready for when the block lifts. It hasn't been tried on real Unraid yet.
 
 The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor. It uses two ports:
 
@@ -220,10 +220,16 @@ The container appears in Unraid's **Docker** tab and restarts on its own after a
 
 ### 4. Log in
 
-1. Open `http://<unraid-ip>:8411`.
+Twitch refuses logins in the app's automated browser, so when you're not logged in, the app closes it and opens a normal Chrome window in the browser view instead, just like the sign-in step on Windows and macOS.
+
+1. Open `http://<unraid-ip>:8411`. The status shows **Login needed**.
 2. Click **Browser view** and enter your password. Only its first 8 characters count.
-3. Log in to Twitch in the Chrome window you see there.
-4. Continue with [First-time setup](#first-time-setup).
+3. Log in to Twitch in the Chrome window you see there, including any code Twitch sends you.
+4. Close that Chrome window with the **X** at its top right, or click **Done signing in** on the dashboard.
+5. The app starts its own browser again with your saved login. If you closed the window before you were logged in, the sign-in window opens again.
+6. Continue with [First-time setup](#first-time-setup).
+
+You only need to do this once. If your login expires later, the app opens the sign-in window again by itself.
 
 ### Using Docker Compose instead
 
@@ -294,7 +300,8 @@ The app's browser uses its own profile, so your normal browsers, bookmarks and l
 | **Refresh now** | Reloads campaigns and inventory immediately. |
 | **Pause / Resume** | Stops or restarts watching. The app stays open. |
 | **Auto-claim** | Turns automatic claiming on or off. |
-| **Browser view** | Docker only. Opens the virtual screen. |
+| **Browser view** | Docker only. Opens the virtual screen, where you sign in and can watch the stream. |
+| **Done signing in** | Docker only, shown while the sign-in window is open. Closes it and starts farming with your saved login. |
 
 **Needs linking** lists every active campaign that's skipped because your game account isn't linked. Selected games come first, in red; the button underneath shows the rest. Each row has a **Link account** button. Click **Refresh now** after linking.
 

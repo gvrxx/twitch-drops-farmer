@@ -243,7 +243,7 @@ test('Docker sign-in reopens the window until you are logged in, then farms', as
       browser.signIn = async () => {
         windows++;
         if (windows === 2) loggedIn = true;
-        return 60_000;
+        return { failed: false, errors: '' };
       };
     },
   });

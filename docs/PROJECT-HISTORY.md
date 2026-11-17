@@ -33,6 +33,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 13. **Needs linking.** One list of every campaign skipped for an unlinked game account, with its link.
 14. **History.** Claimed drops and watch time per game are saved to `history.json` and shown on the dashboard.
 15. **Blocked-by-Twitch status and saved activity.** The app reports when Twitch refuses the campaign list, and the activity log is kept in `activity.log` across restarts.
+16. **Docker sign-in.** When you're not logged in, the app closes its automated browser and opens a normal Chrome in the browser view, the same way `login.command` works on a Mac. It starts its own browser again once you close that window.
 
 ## What we learned
 
@@ -106,7 +107,7 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 - **Twitch blocks the campaign list (Nov 14, 2026).** The project is paused because of this; see [Paused](#paused). A normal browser still shows the campaigns, so the block is aimed at automated browsers.
 
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
-- **Docker sign-in.** The browser view runs Chrome under automation, so Twitch will refuse a login there. A way to sign in normally in the container is needed. A session copied from a Mac or PC won't work, because cookies are encrypted per machine.
+- **Docker sign-in on real Unraid.** The browser view now opens a normal Chrome for signing in, and CI checks that it opens and reopens as it should. Signing in to a real account in the container hasn't been tried yet.
 - **Unraid.** The image builds and starts in CI but hasn't run on real Unraid.
 - **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
 - **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again.
@@ -117,4 +118,4 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 1. Read the [README](../README.md) for setup, and run `npm test` to check things still pass.
 2. The main logic is in `src/farmer.js` (what to do next), `src/twitch.js` (the browser) and `src/store.js` (Twitch's data).
 3. Keep to the one-stream, no-spoofing approach.
-4. Suggested order: test Windows, leave it running for a few days, then sort out Docker sign-in and run it on Unraid.
+4. Suggested order, once Twitch stops blocking the campaign list: test Windows, try the Docker sign-in on Unraid, then leave it running for a few days.

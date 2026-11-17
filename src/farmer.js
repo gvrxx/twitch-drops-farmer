@@ -186,11 +186,10 @@ export class Farmer {
     if (this.browser.signsInItself) {
       this.log('Not logged in. Opening a sign-in window in the browser view.');
       for (;;) {
-        const openFor = await this.browser.signIn();
+        const { failed, errors } = await this.browser.signIn();
         if (await this.browser.isLoggedIn()) break;
-        if (openFor < 5000) {
-          // Closed by itself straight away: the browser likely failed to start.
-          this.log("The sign-in window closed straight away. Trying again in 30 seconds.", 'warn');
+        if (failed) {
+          this.log(`The sign-in window closed straight away${errors ? ` (${errors})` : ''}. Trying again in 30 seconds.`, 'warn');
           await new Promise((r) => setTimeout(r, 30_000));
         } else {
           this.log('Still not logged in. Opening the sign-in window again.', 'warn');
