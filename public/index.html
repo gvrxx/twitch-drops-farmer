@@ -30,6 +30,7 @@
   .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
   .pill.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
   .alert { color: var(--bad); border-left: 3px solid var(--bad); padding-left: 10px; }
+  .alert.note { color: var(--warn); border-left-color: var(--warn); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
   .muted { color: var(--muted); }
@@ -204,9 +205,11 @@
 
   function renderNow() {
     const w = state.watching;
-    const refused = state.campaignsRefused
-      ? '<div class="alert">Twitch refused to send your drop campaigns at the last check ("failed integrity check"). It is blocking this automated browser from the campaign list, so new campaigns and progress can\'t be seen. See Troubleshooting in the README.</div>'
-      : '';
+    // With campaigns known from the inventory the app still farms, so this is a note, not an error.
+    const known = state.games.some((g) => g.campaigns.length);
+    const refused = !state.campaignsRefused ? '' : known
+      ? '<div class="alert note">Twitch refused the full campaign list at the last check ("failed integrity check"). The app farms the campaigns your inventory shows as started, but it can\'t find new ones. See Troubleshooting in the README.</div>'
+      : '<div class="alert">Twitch refused to send your drop campaigns at the last check ("failed integrity check"). It is blocking this automated browser from the campaign list, so there\'s nothing to farm. See Troubleshooting in the README.</div>';
     // The blocked status message repeats the alert, so show just the alert then.
     const msg = refused + (state.message && !(refused && state.phase === 'blocked') ? `<div class="muted">${esc(state.message)}</div>` : '');
     if (!w) {

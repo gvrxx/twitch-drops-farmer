@@ -2,6 +2,10 @@
 
 Each version is published on the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), with a Docker image tagged the same. The version the app is running shows next to its name on the dashboard.
 
+## 1.0.2 (2026-11-21)
+
+- When Twitch refuses the full campaign list but your inventory shows campaigns you've started, the dashboard shows a yellow note instead of a red error, because those campaigns are still farmed.
+
 ## 1.0.1 (2026-11-21)
 
 - Unraid: the container's menu in the Docker tab now has **WebUI**, which opens the dashboard.

@@ -239,7 +239,7 @@ export class Farmer {
   // Logs only when the refusal starts or stops, not on every retry.
   #noteRefusal(refused) {
     if (refused && !this.campaignsRefused) {
-      this.log('Twitch refused to send your drop campaigns (failed integrity check). It is blocking this automated browser from the campaign list.', 'error');
+      this.log("Twitch refused the full drop campaigns list (failed integrity check). Only campaigns your inventory shows as started can be farmed; new ones can't be found.", 'warn');
     } else if (!refused && this.campaignsRefused) {
       this.log('Twitch is sending drop campaigns again.', 'success');
     }

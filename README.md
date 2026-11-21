@@ -415,6 +415,7 @@ To update on Windows or macOS, download the new version's ZIP from its release a
 | --- | --- |
 | "Node.js 20 or newer is required" | Install Node.js, close the terminal, and try again. On Windows, sign out and back in if it still isn't found. |
 | Twitch says your browser isn't supported at login | Twitch refuses logins in automated browsers. Stop the app, run `login.bat` or `bash login.command`, sign in there, then start the app again. |
+| A yellow note says Twitch refused the full campaign list, but it's still farming | The same block, but your inventory still lists campaigns you've already started, so the app keeps farming those. Campaigns you haven't started won't be found. |
 | App says **Blocked by Twitch**, or loads 0 campaigns | Twitch is refusing to send the drop campaigns list to the app's browser. Its anti-bot check ("failed integrity check") flags automated browsers. Open https://www.twitch.tv/drops/campaigns in your normal browser. If campaigns show there, the block is aimed at automated browsers and the app can't farm until Twitch lifts it. If they're missing there too, it's a Twitch problem that should clear on its own. The app doesn't try to get around this check. |
 | App says **Login needed** | The saved login is missing or expired. Stop the app and run the sign-in step again. If that doesn't help, delete `browser-profile` and repeat it. |
 | Install or Chromium download fails | Check your connection, delete the `node_modules` folder if it exists, and run the start script again. |
