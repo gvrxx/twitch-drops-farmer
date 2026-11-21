@@ -40,7 +40,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
 19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It updates each app listed in it, and restarts only those with a new version.
 20. **App icon.** A white drop on purple, served by the dashboard at `/icon.png`. It's the browser tab icon, and the update script points Unraid's icon label at it.
-21. **Public repository (Nov 21, 2026).** The repository and its Docker image are public, so installing and updating need no GitHub account or token. Before that, the history was checked for personal details and rewritten so commits and tags use GitHub's private noreply email.
+21. **Public repository (Nov 21, 2026).** The repository and its Docker image are public, so installing and updating need no GitHub account or token. Before that, the history was checked for personal details and rewritten so commits and tags use GitHub's private noreply email. The example timezone in the docs and update script became `Europe/London`. Versions 1.0.0 to 1.0.4 were deleted (releases, tags and Docker images), so 1.0.5 is the first public release and the changelog has a single entry for it.
 
 ## What we learned
 
@@ -103,6 +103,8 @@ Unraid's container icon comes from the `net.unraid.docker.icon` label, which mus
 The repository and its Docker image have separate visibility settings. Making the repository public leaves the image private, and the image's visibility can only be changed on its package settings page on GitHub, not through GitHub's API.
 
 Commit and tag authors are public along with the code, so they use GitHub's noreply address (`<id>+gvrxx@users.noreply.github.com`). Keep `git config user.email` set to it. The history was rewritten to replace the earlier address, which changed every commit hash. While force-pushing the rewritten tags, the Release workflow was turned off so it wouldn't publish old versions again as `latest`.
+
+The old versions were then deleted. Releases and their tags go with `gh release delete v<version> --cleanup-tag`. Docker image versions are deleted on the package's **versions** page on GitHub. Each release there is three entries: the tagged image plus two untagged parts (the image itself and its build attestation). Check which untagged parts belong to the version you keep before deleting any; deleting one of those would break that version's download.
 
 ## Test results
 
