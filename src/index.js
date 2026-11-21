@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { DATA_DIR, loadConfig, loadRuntime, saveConfig } from './config.js';
+import { DATA_DIR, VERSION, loadConfig, loadRuntime, saveConfig } from './config.js';
 import { Farmer } from './farmer.js';
 import { ActivityLog } from './activity.js';
 import { History } from './history.js';
@@ -25,7 +25,7 @@ function log(msg, level = 'info') {
   console.log(`[${new Date(line.t).toLocaleTimeString()}] ${msg}`);
   broadcast();
 }
-log('App started.');
+log(`App started (version ${VERSION}).`);
 
 const browser = new TwitchBrowser({
   profileDir: path.join(DATA_DIR, 'browser-profile'),
@@ -125,6 +125,7 @@ function snapshot() {
     lastInventoryRefresh: farmer.lastInventoryRefresh,
     autoClaim: config.autoClaim,
     farmOrder: config.farmOrder,
+    version: VERSION,
     history: history.snapshot(),
     browserViewPort: runtime.browserViewPort,
     signingIn: browser.signingIn,

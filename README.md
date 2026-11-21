@@ -24,6 +24,7 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 - [How it works](#how-it-works)
 - [Uninstall](#uninstall)
 - [Development](#development)
+- [Versions](#versions)
 - [Project history](docs/PROJECT-HISTORY.md)
 
 ## Project status
@@ -193,17 +194,26 @@ The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor.
 - **8411:** the dashboard.
 - **6080:** the *browser view*, which shows that virtual screen in your web browser. You use it to log in to Twitch.
 
-### 1. Copy the project to the server
+Each release publishes a ready-made image, `ghcr.io/gvrxx/twitch-drops-farmer`, so Unraid doesn't need the source code or a build step. The image is for Intel and AMD processors, which is what Unraid servers use.
 
-1. Download the ZIP as in the Windows or macOS steps, and unzip it.
-2. Copy the folder to `/mnt/user/appdata/twitch-drops-farmer-src` on the server, using a network share or `scp`.
+### 1. Let Unraid download the image
 
-### 2. Build the image
+The repository is private, so its image is too. Unraid needs a GitHub token to download it:
 
-Open the Unraid terminal (the `>_` icon at the top right) and run:
+1. On GitHub, open **Settings → Developer settings → Personal access tokens → Tokens (classic)** and click **Generate new token (classic)**.
+2. Name it `unraid`, tick only **read:packages**, pick an expiry, and generate it. Copy the token.
+3. Open the Unraid terminal (the `>_` icon at the top right) and run this. When it asks for a password, paste the token:
 
 ```bash
-docker build -t twitch-drops-farmer /mnt/user/appdata/twitch-drops-farmer-src
+docker login ghcr.io -u gvrxx
+```
+
+Unraid remembers this, so you only do it once, or again when the token expires.
+
+### 2. Download the image
+
+```bash
+docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest
 ```
 
 ### 3. Start the container
@@ -211,7 +221,7 @@ docker build -t twitch-drops-farmer /mnt/user/appdata/twitch-drops-farmer-src
 Change `TZ` to your timezone and `change-me` to a password of your own, then run:
 
 ```bash
-docker run -d --name twitch-drops-farmer --restart unless-stopped --init --shm-size=1g -p 8411:8411 -p 6080:6080 -e TZ=Europe/London -e VNC_PASSWORD=change-me -e ALLOWED_HOSTS=tower,tower.local -v /mnt/user/appdata/twitch-drops-farmer:/data twitch-drops-farmer
+docker run -d --name twitch-drops-farmer --restart unless-stopped --init --shm-size=1g -p 8411:8411 -p 6080:6080 -e TZ=Europe/London -e VNC_PASSWORD=change-me -e ALLOWED_HOSTS=tower,tower.local -v /mnt/user/appdata/twitch-drops-farmer:/data ghcr.io/gvrxx/twitch-drops-farmer:latest
 ```
 
 The container appears in Unraid's **Docker** tab and restarts on its own after a reboot or crash. Settings and your Twitch login are stored in `/mnt/user/appdata/twitch-drops-farmer`.
@@ -233,10 +243,18 @@ You only need to do this once. If your login expires later, the app opens the si
 
 ### Using Docker Compose instead
 
-If you have the *Docker Compose Manager* plugin, or `docker compose` on another Docker host, copy `.env.example` to `.env`, fill it in, and run this from the project folder:
+If you have the *Docker Compose Manager* plugin, or `docker compose` on another Docker host, copy `.env.example` to `.env`, fill it in, and run this from the project folder. It builds the image from the source instead of downloading it:
 
 ```bash
 docker compose up -d --build
+```
+
+### Building the image yourself
+
+To build from the source instead of using the published image, copy the project folder to the server, for example to `/mnt/user/appdata/twitch-drops-farmer-src`, then run the command below. Use `twitch-drops-farmer` in place of the image name in the `docker run` command.
+
+```bash
+docker build -t twitch-drops-farmer /mnt/user/appdata/twitch-drops-farmer-src
 ```
 
 ### Docker security
@@ -349,17 +367,25 @@ If any of these fail, keep the contents of **Activity**, as that's what's needed
 
 ### Docker
 
-Stop or start it from Unraid's **Docker** tab. To update, copy the new files over the source folder, then run:
+Stop or start it from Unraid's **Docker** tab. To update to the newest release, download it, remove the old container, then run the `docker run` command from [step 3](#3-start-the-container) again:
+
+```bash
+docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest
+```
 
 ```bash
 docker rm -f twitch-drops-farmer
 ```
 
-```bash
-docker build -t twitch-drops-farmer /mnt/user/appdata/twitch-drops-farmer-src
-```
+Your settings and login stay in `/mnt/user/appdata/twitch-drops-farmer`. To stay on a particular version, use its number in place of `latest`, for example `ghcr.io/gvrxx/twitch-drops-farmer:1.0.0`.
 
-Then run the `docker run` command from [step 3](#3-start-the-container) again. Your settings and login stay in `/mnt/user/appdata/twitch-drops-farmer`.
+## Versions
+
+The dashboard shows the version it's running next to its name, for example **v1.0.0**. Click it to open the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), which lists every version with what changed. The same notes are in [CHANGELOG.md](CHANGELOG.md).
+
+To hear about new versions, open the repository on GitHub, click **Watch → Custom**, and tick **Releases**.
+
+To update on Windows or macOS, download the new version's ZIP from its release and follow [Stop, start and update](#stop-start-and-update). On Docker, see above.
 
 ## Troubleshooting
 
@@ -450,6 +476,9 @@ docker rm -f twitch-drops-farmer && docker rmi twitch-drops-farmer
 ```
 
 ## Development
+
+To publish a new version: change `version` in `package.json`, add a section for it at the top of `CHANGELOG.md`, commit, then tag and push it, for example `git tag v1.1.0` and `git push origin v1.1.0`. The Release workflow checks the tag matches `package.json`, runs the tests, publishes the Docker image and creates the GitHub release with that CHANGELOG section as its notes.
+
 
 ```bash
 npm install

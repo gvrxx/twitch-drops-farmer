@@ -84,6 +84,8 @@
   .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
   .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
   a { color: var(--accent); }
+  .version { font-size: 12px; font-weight: 500; color: var(--muted); text-decoration: none; margin-left: 4px; }
+  .version:hover { text-decoration: underline; }
   @media (max-width: 560px) {
     .game { grid-template-columns: auto 40px 1fr; }
     .game .order { grid-column: 2 / -1; }
@@ -94,7 +96,7 @@
 <body>
 <main>
   <header>
-    <h1>Drops Farmer</h1>
+    <h1>Drops Farmer <a id="version" class="version" href="https://github.com/gvrxx/twitch-drops-farmer/releases" target="_blank" rel="noopener" title="Releases on GitHub"></a></h1>
     <span id="status" class="pill"><span class="dot"></span><span>Connecting…</span></span>
     <label class="toggle"><input type="checkbox" id="autoclaim"> Auto-claim</label>
     <a id="view" class="button" target="_blank" rel="noopener" hidden>Browser view</a>
@@ -177,6 +179,7 @@
     const view = $('view');
     view.hidden = !state.browserViewPort;
     $('signindone').hidden = !state.signingIn;
+    $('version').textContent = state.version ? `v${state.version}` : '';
     if (state.browserViewPort) view.href = `${location.protocol}//${location.hostname}:${state.browserViewPort}/vnc.html?autoconnect=1&resize=scale`;
   }
 

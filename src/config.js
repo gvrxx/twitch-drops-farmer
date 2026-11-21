@@ -6,6 +6,8 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 // Where config.json and the browser profile live (a mounted volume in Docker).
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || ROOT);
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
+// The app's version, from package.json. Each release on GitHub is tagged v<version>.
+export const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 
 const DEFAULTS = {
   port: 8411,
