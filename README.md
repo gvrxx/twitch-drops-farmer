@@ -367,7 +367,29 @@ If any of these fail, keep the contents of **Activity**, as that's what's needed
 
 ### Docker
 
-Stop or start it from Unraid's **Docker** tab. To update to the newest release, download it, remove the old container, then run the `docker run` command from [step 3](#3-start-the-container) again:
+Stop or start it from Unraid's **Docker** tab.
+
+#### One-click updates on Unraid
+
+Set this up once, and updating is a single **Run Script** click from then on. It also logs in to GitHub for you, so you don't need to run `docker login` again after a reboot.
+
+1. Install the **User Scripts** plugin from Unraid's **Apps** tab.
+2. Save your GitHub token on the flash drive, so it survives reboots. In the Unraid terminal, run the command below, paste the token (nothing shows as you paste), and press Enter:
+
+   ```bash
+   read -rs TOKEN && echo "$TOKEN" > /boot/config/drops-farmer-github-token && unset TOKEN && echo saved
+   ```
+
+3. Go to **Settings → User Scripts**, click **Add New Script**, and name it `Update Drops Farmer`.
+4. Click the gear icon next to it, choose **Edit Script**, and replace everything with the contents of [`docker/unraid-update.sh`](docker/unraid-update.sh). At the top, set `VNC_PASSWORD`, `TZ` and `ALLOWED_HOSTS` to the values you started the container with, then click **Save Changes**.
+
+To update, go to **Settings → User Scripts** and click **Run Script** next to **Update Drops Farmer**. It downloads the newest version and restarts the container only if there's something new, then says which version is running. To have it check by itself, set its schedule to **Scheduled Daily**.
+
+The token file and the script's browser view password are stored in plain text on the flash drive. The token can only download images, but don't share the flash drive's contents.
+
+#### Updating by hand
+
+Download the newest release, remove the old container, then run the `docker run` command from [step 3](#3-start-the-container) again:
 
 ```bash
 docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest
