@@ -2,6 +2,10 @@
 
 Each version is published on the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), with a Docker image tagged the same. The version the app is running shows next to its name on the dashboard.
 
+## 1.0.5 (2026-11-21)
+
+- An app icon, shown in the dashboard's browser tab and, with the updated Unraid script, on the container in Unraid's Docker tab.
+
 ## 1.0.4 (2026-11-21)
 
 - While Twitch blocks the campaign list, selected games with nothing visible show "Can't see its campaigns" instead of "No active event", and are rechecked every 30 minutes instead of every 3 days.

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { ROOT } from './config.js';
 
 const DASHBOARD = path.join(ROOT, 'public', 'index.html');
+// The app icon: the dashboard's tab icon, and the container icon on Unraid.
+const ICON = path.join(ROOT, 'public', 'icon.png');
 
 // Dashboard: JSON API + server-sent events. Requests must name the server by
 // localhost, an IP address or an ALLOWED_HOSTS entry (blocks DNS rebinding),
@@ -29,6 +31,10 @@ export function startServer({ port, bindHost, allowedHosts, snapshot, actions })
     if (req.method === 'GET' && url.pathname === '/') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
       return fs.createReadStream(DASHBOARD).pipe(res);
+    }
+    if (req.method === 'GET' && (url.pathname === '/icon.png' || url.pathname === '/favicon.ico')) {
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'max-age=86400' });
+      return fs.createReadStream(ICON).pipe(res);
     }
     if (req.method === 'GET' && url.pathname === '/api/state') return send(res, 200, snapshot());
     if (req.method === 'GET' && url.pathname === '/api/events') {

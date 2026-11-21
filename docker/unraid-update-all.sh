@@ -7,6 +7,8 @@
 # it survives reboots. One token covers every image under your GitHub account.
 TOKEN_FILE='/boot/config/drops-farmer-github-token'
 GITHUB_USER='gvrxx'
+# This server's address on your network, for links Unraid shows (such as app icons).
+SERVER_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}')
 
 # ---- Your apps ----
 # One "app" entry per container: its name, its image, then the same options you
@@ -16,7 +18,8 @@ apps() {
     --restart unless-stopped --init --shm-size=1g \
     -p 8411:8411 -p 6080:6080 \
     -e TZ='Europe/London' -e VNC_PASSWORD='change-me' -e ALLOWED_HOSTS='tower,tower.local' \
-    -v /mnt/user/appdata/twitch-drops-farmer:/data
+    -v /mnt/user/appdata/twitch-drops-farmer:/data \
+    -l net.unraid.docker.icon="http://$SERVER_IP:8411/icon.png"
 
   # To add another app, copy the block above and change it, for example:
   # app my-other-app ghcr.io/gvrxx/my-other-app:latest \
