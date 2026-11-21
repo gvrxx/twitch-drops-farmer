@@ -2,7 +2,7 @@
 
 Earns Twitch Drops for the games you pick. It plays one eligible stream at a time in a real browser window (muted, 160p), moves to a new channel when a stream ends, raids away or changes game, and claims finished drops for you. You control it from a dashboard in your web browser.
 
-> **Paused (Nov 14, 2026): the app can't farm right now.** Twitch refuses to send the drop campaigns list to automated browsers ("failed integrity check"), while the same page works in a normal browser. Without that list the app has nothing to farm. It doesn't try to get around Twitch's check, and the project is paused until Twitch changes this. If you start the app anyway, the dashboard shows **Blocked by Twitch** while the block lasts and starts farming by itself if it lifts. See the [project history](docs/PROJECT-HISTORY.md#paused).
+> **Partly blocked (since Nov 14, 2026):** Twitch refuses to send the full drop campaigns list to automated browsers ("failed integrity check"), while the same page works in a normal browser. The app still farms campaigns your inventory shows as started, with their progress and claims, but it can't find campaigns you haven't started. It doesn't try to get around Twitch's check. A yellow note on the dashboard shows while the block lasts. See the [project history](docs/PROJECT-HISTORY.md#paused).
 
 > **Account risk:** automating watch time is against Twitch's Terms of Service. This tool keeps close to normal viewing (one real stream, no spoofed requests), but your account is still at risk. Use it at your own discretion.
 
@@ -29,7 +29,7 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 
 ## Project status
 
-**Paused:** Twitch currently blocks the campaign list in automated browsers, so nothing below can run end to end. The table shows where things stood before the block.
+**Partly blocked:** Twitch currently refuses the full campaign list in automated browsers, so only campaigns already started in your inventory can be farmed (see the note at the top).
 
 The full cycle worked on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. Windows and Docker need more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
 
@@ -41,7 +41,7 @@ The full cycle worked on macOS with a real Twitch account: sign in, find a strea
 | Earning watch time and auto-claiming drops | Works on macOS |
 | Dormant mode and adding games with no event | Works on macOS. A full 24-hour wait is covered by automated tests, not waited out live. |
 | Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
-| Docker | Runs on Unraid from the published image, and signing in through the browser view works with a real account (Nov 21, 2026). Farming there hasn't been possible yet because of the Twitch block. |
+| Docker | Runs on Unraid from the published image (Nov 21, 2026): signing in through the browser view, farming a started campaign, claiming drops, the WebUI link and one-click updates all work. |
 | Stream reload for long runs | Works on macOS |
 | Minimized browser that doesn't take focus | Works on macOS. The stream keeps playing and earning while minimized. Not tried on Windows. |
 | Surviving the computer sleeping | Works on macOS. Nothing is earned while asleep, and it picks up again on wake. |
@@ -187,7 +187,7 @@ Sign in with Google Chrome or Chromium installed on your system. Stop the app, r
 
 ## Install on Unraid (Docker)
 
-> **Like the other systems, it can't farm while Twitch blocks the campaign list** (see the note at the top). Signing in through the browser view works on Unraid, so it's ready for when the block lifts.
+> **Works on Unraid**, with the same limit as everywhere while Twitch blocks the full campaign list: only campaigns already started in your inventory are farmed (see the note at the top).
 
 The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor. It uses two ports:
 
