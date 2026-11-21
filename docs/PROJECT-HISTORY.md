@@ -39,6 +39,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 17. **Versions and releases.** The app has a version number, shown on the dashboard. Pushing a `v<version>` tag runs the Release workflow: it checks the tag matches `package.json`, runs the tests, publishes a Docker image to `ghcr.io/gvrxx/twitch-drops-farmer` and creates a GitHub release from `CHANGELOG.md`.
 18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
 19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It logs in to GitHub with a token saved on the flash drive, then updates each app listed in it, and restarts only those with a new version.
+20. **App icon.** A white drop on purple, served by the dashboard at `/icon.png`. It's the browser tab icon, and the update script points Unraid's icon label at it.
 
 ## What we learned
 
@@ -95,6 +96,8 @@ The repository is private, so its image is too. Unraid needs a classic GitHub to
 Unraid keeps `docker login` in memory, so it's lost on reboot. The update script avoids that by keeping the token in `/boot/config/drops-farmer-github-token` on the flash drive and logging in each time it runs.
 
 Each app in the update script is one `app` entry: container name, image, then its `docker run` options. The script compares the running container's image with the newly downloaded one, and only recreates the container when they differ. Settings live in the app's data folder, so recreating it loses nothing.
+
+Unraid's container icon comes from the `net.unraid.docker.icon` label, which must be a web address Unraid can load. GitHub's addresses for a private repository need a login, so the dashboard serves the icon itself, and the update script fills in the server's own address when it starts the container. Unraid only re-reads a container's icon when you click **Check for Updates** in the Docker tab; until then it keeps showing a question mark, even though the label and address are correct.
 
 ## Test results
 
