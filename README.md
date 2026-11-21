@@ -390,11 +390,11 @@ docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest
 docker rm -f twitch-drops-farmer
 ```
 
-Your settings and login stay in `/mnt/user/appdata/twitch-drops-farmer`. To stay on a particular version, use its number in place of `latest`, for example `ghcr.io/gvrxx/twitch-drops-farmer:1.0.0`.
+Your settings and login stay in `/mnt/user/appdata/twitch-drops-farmer`. To stay on a particular version, use its number in place of `latest`, for example `ghcr.io/gvrxx/twitch-drops-farmer:1.0.5`.
 
 ## Versions
 
-The dashboard shows the version it's running next to its name, for example **v1.0.0**. Click it to open the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), which lists every version with what changed. The same notes are in [CHANGELOG.md](CHANGELOG.md).
+The dashboard shows the version it's running next to its name, for example **v1.0.5**. Click it to open the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), which lists every version with what changed. The same notes are in [CHANGELOG.md](CHANGELOG.md).
 
 To hear about new versions, open the repository on GitHub, click **Watch → Custom**, and tick **Releases**.
 
