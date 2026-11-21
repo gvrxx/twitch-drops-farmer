@@ -40,7 +40,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
 19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It updates each app listed in it, and restarts only those with a new version.
 20. **App icon.** A white drop on purple, served by the dashboard at `/icon.png`. It's the browser tab icon, and the update script points Unraid's icon label at it.
-21. **Public repository (Nov 21, 2026).** The repository and its Docker image are public, so installing and updating need no GitHub account or token. Before that, the history was checked for personal details and rewritten so commits and tags use GitHub's private noreply email. The example timezone in the docs and update script became `Europe/London`. Versions 1.0.0 to 1.0.4 were deleted (releases, tags and Docker images), so 1.0.5 is the first public release and the changelog has a single entry for it.
+21. **Public repository (Nov 21, 2026).** The repository and its Docker image are public, so installing and updating need no GitHub account or token. Before that, the history was checked for personal details and rewritten so commits and tags use GitHub's private noreply email. The example timezone in the docs and update script became `Europe/London`. Versions 1.0.0 to 1.0.4 were deleted (releases, tags and Docker images), so 1.0.5 is the first public release and the changelog has a single entry for it. Old CI runs were deleted and 1.0.5 was rebuilt without build attestations, since both still held the old email. The README was updated to match: no GitHub account needed, Docker listed as working, and Development notes on republishing a version and keeping personal details out of the repository.
 
 ## What we learned
 
@@ -132,10 +132,10 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 ## Still open
 
 - **Twitch blocks the campaign list (Nov 14, 2026).** The project is paused because of this; see [Paused](#paused). A normal browser still shows the campaigns, so the block is aimed at automated browsers.
-
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
 - **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
 - **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again. On Docker it opens the sign-in window in the browser view by itself.
+- **No license.** The repository is public but has no license, by choice for now. Others can read the code but have no permission to reuse it.
 - **Token expiry.** Only matters if the update script also pulls private images. If that token expires, the script says so; create a new one and save it to the same file on the flash drive.
 - **Keeping up with Twitch.** Site changes can break campaign loading or claiming. Check **Activity** on the dashboard first.
 
@@ -146,3 +146,4 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 3. Keep to the one-stream, no-spoofing approach.
 4. Suggested order: test Windows with a real account, then leave Unraid running for a few days and check memory use.
 5. To release a change, follow "To publish a new version" in the README's Development section. Unraid picks it up at the next daily update.
+6. Commit with the noreply email, and check new files for personal details before pushing: the repository is public.
