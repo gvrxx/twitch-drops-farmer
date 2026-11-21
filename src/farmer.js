@@ -264,8 +264,13 @@ export class Farmer {
       }
       if (entry && !forced && now < entry.nextCheckAt) continue;
       const start = this.store.nextCampaignStart(id, now);
-      const nextCheckAt = Math.min(now + DORMANT_RECHECK_MS, start ? start + CAMPAIGN_START_GRACE_MS : Infinity);
-      const reason = this.store.dormantReason(id, now);
+      let reason = this.store.dormantReason(id, now);
+      // With the list refused, "no event" only means none is visible to us. Check
+      // again at each campaign reload, so a lifted block is noticed quickly.
+      const blind = this.campaignsRefused && reason === 'No active event';
+      if (blind) reason = "Can't see its campaigns (Twitch is blocking the list)";
+      const recheck = blind ? this.config.campaignRefreshMinutes * MIN : DORMANT_RECHECK_MS;
+      const nextCheckAt = Math.min(now + recheck, start ? start + CAMPAIGN_START_GRACE_MS : Infinity);
       this.dormant.set(id, { reason, nextCheckAt });
       // Rechecks that change nothing stay quiet; the dashboard shows the next check time.
       if (entry?.reason !== reason) this.log(`${this.#gameName(id)} is dormant (${reason}). Next check: ${formatTime(nextCheckAt)}.`);

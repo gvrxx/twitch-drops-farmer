@@ -335,6 +335,7 @@ You can leave a game selected even when it has no event. A selected game goes do
 | --- | --- |
 | **No active event** | Nothing. It wakes when an event starts. |
 | **All drops earned** | Nothing. It wakes when a new event starts. |
+| **Can't see its campaigns** | Nothing. Twitch is blocking the campaign list, so the app can't tell whether there's an event. It checks again every 30 minutes. |
 | **Game account not linked** | Click **Link account**, then **Refresh now**. |
 
 - **Other games keep going.** If another selected game has drops, the app keeps farming that one. Dormant games are skipped, and the app notices a new event for them at its regular 30-minute campaign check.

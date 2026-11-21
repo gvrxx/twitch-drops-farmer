@@ -253,3 +253,21 @@ test('Docker sign-in reopens the window until you are logged in, then farms', as
   assert.ok(logs.some((l) => l.m === 'Logged in.'));
   await stop();
 });
+
+test('while the list is refused, a game with nothing visible is not called eventless', async () => {
+  // Another game's campaign is known (as from the inventory), but the full list is refused.
+  const { farmer, stop } = setup({ listing: [other], refuse: true, prepare(browser) {
+    const load = browser.loadCampaigns;
+    browser.loadCampaigns = async () => {
+      browser.refuse = false;
+      await load();
+      browser.refuse = true;
+      await load();
+    };
+  } });
+  await until(() => farmer.dormant.has('g1'));
+  const { reason, nextCheckAt } = farmer.dormant.get('g1');
+  assert.match(reason, /Can't see its campaigns/);
+  assert.ok(nextCheckAt - Date.now() <= 30 * 60_000 + 1000);
+  await stop();
+});

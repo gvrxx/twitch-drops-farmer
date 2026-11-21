@@ -1,6 +1,6 @@
 {
   "name": "twitch-drops-farmer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "Watches eligible Twitch streams in a real browser to earn Drops for selected games, with a local dashboard.",
   "type": "module",
