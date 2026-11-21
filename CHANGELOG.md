@@ -2,6 +2,10 @@
 
 Each version is published on the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), with a Docker image tagged the same. The version the app is running shows next to its name on the dashboard.
 
+## 1.0.3 (2026-11-21)
+
+- Dashboard: a divider labelled "Other games with drops" separates your selected games from the rest.
+
 ## 1.0.2 (2026-11-21)
 
 - When Twitch refuses the full campaign list but your inventory shows campaigns you've started, the dashboard shows a yellow note instead of a red error, because those campaigns are still farmed.

@@ -39,6 +39,7 @@
   .now-head a { font-size: 18px; font-weight: 600; color: var(--text); }
   .game { display: grid; grid-template-columns: auto 48px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; }
   .game + .game { border-top: 1px solid var(--line); }
+  .divider { padding: 18px 16px 8px; border-top: 3px solid var(--line); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   .game img { width: 48px; height: 64px; object-fit: cover; border-radius: 4px; background: var(--bar); }
   .game .name { font-weight: 600; }
   .game .order { display: flex; gap: 4px; }
@@ -252,11 +253,14 @@
     }
     const sel = selectedGames();
     const order = farmingOrder();
-    $('games').innerHTML = state.games.map((g) => {
+    // Selected games come first; a labelled divider starts the rest.
+    const firstOther = state.games.findIndex((g) => !sel.some((s) => s.id === g.id));
+    $('games').innerHTML = state.games.map((g, i) => {
+      const divider = sel.length && i === firstOther ? `<div class="divider">Other games with drops</div>` : '';
       const idx = sel.findIndex((s) => s.id === g.id);
       const on = idx >= 0;
       const rank = order.findIndex((s) => s.id === g.id);
-      return `<div class="game" data-id="${esc(g.id)}">
+      return `${divider}<div class="game" data-id="${esc(g.id)}">
         <input type="checkbox" ${on ? 'checked' : ''} data-act="toggle" aria-label="Farm ${esc(g.name)}">
         ${g.boxArtURL ? `<img src="${safeUrl(g.boxArtURL)}" alt="">` : '<img alt="">'}
         <div><div class="name">${on ? `${rank + 1}. ` : ''}${esc(g.name)}</div>
