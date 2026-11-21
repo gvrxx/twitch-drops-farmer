@@ -106,6 +106,8 @@ Commit and tag authors are public along with the code, so they use GitHub's nore
 
 The old versions were then deleted. Releases and their tags go with `gh release delete v<version> --cleanup-tag`. Docker image versions are deleted on the package's **versions** page on GitHub. Each release there is three entries: the tagged image plus two untagged parts (the image itself and its build attestation). Check which untagged parts belong to the version you keep before deleting any; deleting one of those would break that version's download.
 
+Two more places kept the old email after the rewrite. CI runs on GitHub Actions store the commit author of the commit they ran on, so the runs from before the rewrite were deleted. The image's build attestation contained the whole GitHub push event, including the pusher's email, so the Release workflow now builds without attestations (`provenance: false`, `sbom: false`), and 1.0.5 was published again from the same code.
+
 ## Test results
 
 Tested on macOS with a real Twitch account:
