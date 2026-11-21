@@ -8,6 +8,8 @@ What was built, what we learned, and what's left. For install and usage steps, s
 
 That's the situation this project planned for from the start: the app doesn't hide its automation, and when Twitch refuses it, we don't work around the refusal. That rules out stealth browsers, borrowed integrity tokens, and reading the same data from other pages to get past the block. The app now reports **Blocked by Twitch** and retries every 30 minutes.
 
+**Update, Nov 21, 2026:** the inventory still lists campaigns you've already started, with their drops and progress, and the app farms those. On Unraid it farmed Where Winds Meet and claimed drops. Campaigns you haven't started can't be found, so selected games with nothing visible show "Can't see its campaigns" and are rechecked every 30 minutes.
+
 To check later whether Twitch has changed this, start the app and look at the status. **Blocked by Twitch** means it's still blocked. If campaigns load, everything else still works as described below. If the block stays, the project needs a different approach that Twitch allows, not a workaround.
 
 ## What this project is
@@ -34,6 +36,9 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 14. **History.** Claimed drops and watch time per game are saved to `history.json` and shown on the dashboard.
 15. **Blocked-by-Twitch status and saved activity.** The app reports when Twitch refuses the campaign list, and the activity log is kept in `activity.log` across restarts.
 16. **Docker sign-in.** When you're not logged in, the app closes its automated browser and opens a normal Chrome in the browser view, the same way `login.command` works on a Mac. It starts its own browser again once you close that window.
+17. **Versions and releases.** The app has a version number, shown on the dashboard. Pushing a `v<version>` tag runs the Release workflow: it checks the tag matches `package.json`, runs the tests, publishes a Docker image to `ghcr.io/gvrxx/twitch-drops-farmer` and creates a GitHub release from `CHANGELOG.md`.
+18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
+19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It logs in to GitHub with a token saved on the flash drive, then updates each app listed in it, and restarts only those with a new version.
 
 ## What we learned
 
@@ -83,6 +88,14 @@ Twitch's search page (`/search?term=...&type=categories`) returns categories in 
 
 Twitch finds nothing while the last word is half-typed ("hollow kn"), even though "hollow" works. The app then searches again without the unfinished word and keeps the names that contain what you typed. Twitch's own results can include loosely related categories, such as "Just Chatting" for "rust", and those are shown as Twitch returns them.
 
+### Running on Unraid
+
+The repository is private, so its image is too. Unraid needs a classic GitHub token with only **read:packages** to download it; fine-grained tokens can't log in to ghcr.io. One token covers every image under the account.
+
+Unraid keeps `docker login` in memory, so it's lost on reboot. The update script avoids that by keeping the token in `/boot/config/drops-farmer-github-token` on the flash drive and logging in each time it runs.
+
+Each app in the update script is one `app` entry: container name, image, then its `docker run` options. The script compares the running container's image with the newly downloaded one, and only recreates the container when they differ. Settings live in the app's data folder, so recreating it loses nothing.
+
 ## Test results
 
 Tested on macOS with a real Twitch account:
@@ -100,17 +113,18 @@ Tested on macOS with a real Twitch account:
 
 Only 2 of those 119 campaigns were ready to farm. The rest needed a game account linked first, so linking matters a lot.
 
-CI runs unit tests and a startup test on macOS, Windows and Linux on every push. It also builds the Docker image and checks that it starts.
+On Unraid, Nov 21, 2026: the published image installed, sign-in through the browser view worked, it farmed Where Winds Meet from the inventory and claimed drops, and the update script moved it from 1.0.0 to 1.0.4 and then reported "up to date".
+
+CI runs unit tests and a startup test on macOS, Windows and Linux on every push. It also builds the Docker image, checks that it starts, and checks that the sign-in window opens and reopens.
 
 ## Still open
 
 - **Twitch blocks the campaign list (Nov 14, 2026).** The project is paused because of this; see [Paused](#paused). A normal browser still shows the campaigns, so the block is aimed at automated browsers.
 
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
-- **Farming on Unraid.** On Nov 21, 2026 the published image ran on real Unraid and signing in through the browser view worked with a real account. It then showed **Blocked by Twitch**, like the Mac, so farming there is still untried.
-- **Unraid.** The image builds and starts in CI but hasn't run on real Unraid.
 - **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
-- **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again.
+- **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again. On Docker it opens the sign-in window in the browser view by itself.
+- **Token expiry.** If the GitHub token for Unraid expires, the update script says so. Create a new one and save it to the same file on the flash drive.
 - **Keeping up with Twitch.** Site changes can break campaign loading or claiming. Check **Activity** on the dashboard first.
 
 ## Picking this up later
@@ -118,4 +132,5 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 1. Read the [README](../README.md) for setup, and run `npm test` to check things still pass.
 2. The main logic is in `src/farmer.js` (what to do next), `src/twitch.js` (the browser) and `src/store.js` (Twitch's data).
 3. Keep to the one-stream, no-spoofing approach.
-4. Suggested order, once Twitch stops blocking the campaign list: test Windows, try the Docker sign-in on Unraid, then leave it running for a few days.
+4. Suggested order: test Windows with a real account, then leave Unraid running for a few days and check memory use.
+5. To release a change, follow "To publish a new version" in the README's Development section. Unraid picks it up at the next daily update.
