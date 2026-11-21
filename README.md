@@ -372,7 +372,7 @@ Stop or start it from Unraid's **Docker** tab.
 
 #### One-click updates on Unraid
 
-Set this up once, and updating is a single **Run Script** click from then on. It also logs in to GitHub for you, so you don't need to run `docker login` again after a reboot.
+Set this up once, and updating is a single **Run Script** click from then on. It also logs in to GitHub for you, so you don't need to run `docker login` again after a reboot. The same script can update your other apps too: each app is one entry in it.
 
 1. Install the **User Scripts** plugin from Unraid's **Apps** tab.
 2. Save your GitHub token on the flash drive, so it survives reboots. In the Unraid terminal, run the command below, paste the token (nothing shows as you paste), and press Enter:
@@ -381,10 +381,12 @@ Set this up once, and updating is a single **Run Script** click from then on. It
    read -rs TOKEN && echo "$TOKEN" > /boot/config/drops-farmer-github-token && unset TOKEN && echo saved
    ```
 
-3. Go to **Settings → User Scripts**, click **Add New Script**, and name it `Update Drops Farmer`.
-4. Click the gear icon next to it, choose **Edit Script**, and replace everything with the contents of [`docker/unraid-update.sh`](docker/unraid-update.sh). At the top, set `VNC_PASSWORD`, `TZ` and `ALLOWED_HOSTS` to the values you started the container with, then click **Save Changes**.
+3. Go to **Settings → User Scripts**, click **Add New Script**, and name it `Update apps`.
+4. Click the gear icon next to it, choose **Edit Script**, and replace everything with the contents of [`docker/unraid-update-all.sh`](docker/unraid-update-all.sh). In the Drops Farmer entry near the top, set `VNC_PASSWORD`, `TZ` and `ALLOWED_HOSTS` to the values you started the container with, then click **Save Changes**.
 
-To update, go to **Settings → User Scripts** and click **Run Script** next to **Update Drops Farmer**. It downloads the newest version and restarts the container only if there's something new, then says which version is running. To have it check by itself, set its schedule to **Scheduled Daily**.
+To update, go to **Settings → User Scripts** and click **Run Script** next to **Update apps**. For each app it downloads the newest version and restarts the container only if there's something new, then prints one line per app. To have it check by itself, set its schedule to **Scheduled Daily**.
+
+To add another app, copy the Drops Farmer entry inside `apps() { ... }`, change the name, image and options to match how you'd start that container, and save. Every image under your GitHub account works with the same token.
 
 The token file and the script's browser view password are stored in plain text on the flash drive. The token can only download images, but don't share the flash drive's contents.
 
