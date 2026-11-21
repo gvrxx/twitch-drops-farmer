@@ -64,8 +64,6 @@ Your account is still at risk, as noted above. Twitch refuses logins in automate
 
 The computer must stay awake and online while farming.
 
-This repository is private, so you need to be signed in to the GitHub account that owns it, or one with access, to download it.
-
 ## Install on Windows 11
 
 ### 1. Install Node.js
@@ -80,10 +78,9 @@ You can also use the LTS installer from [nodejs.org](https://nodejs.org). Close 
 
 ### 2. Download the project
 
-1. Sign in to GitHub in your web browser.
-2. Open https://github.com/gvrxx/twitch-drops-farmer.
-3. Click **Code → Download ZIP**.
-4. Right-click the ZIP, choose **Extract All**, and pick a folder such as `C:\Tools`.
+1. Open https://github.com/gvrxx/twitch-drops-farmer.
+2. Click **Code → Download ZIP**.
+3. Right-click the ZIP, choose **Extract All**, and pick a folder such as `C:\Tools`.
 
 ### 3. Sign in to Twitch
 
@@ -120,10 +117,9 @@ Also install [Google Chrome](https://www.google.com/chrome/) in your Application
 
 ### 2. Download the project
 
-1. Sign in to GitHub in your web browser.
-2. Open https://github.com/gvrxx/twitch-drops-farmer.
-3. Click **Code → Download ZIP**.
-4. Double-click the ZIP in your Downloads folder to unzip it.
+1. Open https://github.com/gvrxx/twitch-drops-farmer.
+2. Click **Code → Download ZIP**.
+3. Double-click the ZIP in your Downloads folder to unzip it.
 
 ### 3. Sign in to Twitch
 
@@ -196,27 +192,15 @@ The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor.
 
 Each release publishes a ready-made image, `ghcr.io/gvrxx/twitch-drops-farmer`, so Unraid doesn't need the source code or a build step. The image is for Intel and AMD processors, which is what Unraid servers use.
 
-### 1. Let Unraid download the image
+### 1. Download the image
 
-The repository is private, so its image is too. Unraid needs a GitHub token to download it:
-
-1. On GitHub, open **Settings → Developer settings → Personal access tokens → Tokens (classic)** and click **Generate new token (classic)**.
-2. Name it `unraid`, tick only **read:packages**, pick an expiry, and generate it. Copy the token.
-3. Open the Unraid terminal (the `>_` icon at the top right) and run this. When it asks for a password, paste the token:
-
-```bash
-docker login ghcr.io -u gvrxx
-```
-
-Unraid remembers this, so you only do it once, or again when the token expires.
-
-### 2. Download the image
+Open the Unraid terminal (the `>_` icon at the top right) and run:
 
 ```bash
 docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest
 ```
 
-### 3. Start the container
+### 2. Start the container
 
 Change `TZ` to your timezone and `change-me` to a password of your own, then run:
 
@@ -228,7 +212,7 @@ The container appears in Unraid's **Docker** tab and restarts on its own after a
 
 `--shm-size=1g` is required because Chrome crashes with Docker's small default shared memory.
 
-### 4. Log in
+### 3. Log in
 
 Twitch refuses logins in the app's automated browser, so when you're not logged in, the app closes it and opens a normal Chrome window in the browser view instead, just like the sign-in step on Windows and macOS.
 
@@ -372,29 +356,31 @@ Stop or start it from Unraid's **Docker** tab.
 
 #### One-click updates on Unraid
 
-Set this up once, and updating is a single **Run Script** click from then on. It also logs in to GitHub for you, so you don't need to run `docker login` again after a reboot. The same script can update your other apps too: each app is one entry in it.
+Set this up once, and updating is a single **Run Script** click from then on. The same script can update your other apps too: each app is one entry in it.
 
 1. Install the **User Scripts** plugin from Unraid's **Apps** tab.
-2. Save your GitHub token on the flash drive, so it survives reboots. In the Unraid terminal, run the command below, paste the token (nothing shows as you paste), and press Enter:
-
-   ```bash
-   read -rs TOKEN && echo "$TOKEN" > /boot/config/drops-farmer-github-token && unset TOKEN && echo saved
-   ```
-
-3. Go to **Settings → User Scripts**, click **Add New Script**, and name it `Update apps`.
-4. Click the gear icon next to it, choose **Edit Script**, and replace everything with the contents of [`docker/unraid-update-all.sh`](docker/unraid-update-all.sh). In the Drops Farmer entry near the top, set `VNC_PASSWORD`, `TZ` and `ALLOWED_HOSTS` to the values you started the container with, then click **Save Changes**.
+2. Go to **Settings → User Scripts**, click **Add New Script**, and name it `Update apps`.
+3. Click the gear icon next to it, choose **Edit Script**, and replace everything with the contents of [`docker/unraid-update-all.sh`](docker/unraid-update-all.sh). In the Drops Farmer entry near the top, set `VNC_PASSWORD`, `TZ` and `ALLOWED_HOSTS` to the values you started the container with, then click **Save Changes**.
 
 To update, go to **Settings → User Scripts** and click **Run Script** next to **Update apps**. For each app it downloads the newest version and restarts the container only if there's something new, then prints one line per app. To have it check by itself, set its schedule to **Scheduled Daily**.
 
 The Drops Farmer entry also gives the container its icon in Unraid's Docker tab. Unraid loads it from the dashboard, using the server address the script finds.
 
-To add another app, copy the Drops Farmer entry inside `apps() { ... }`, change the name, image and options to match how you'd start that container, and save. Every image under your GitHub account works with the same token.
+To add another app, copy the Drops Farmer entry inside `apps() { ... }`, change the name, image and options to match how you'd start that container, and save.
 
-The token file and the script's browser view password are stored in plain text on the flash drive. The token can only download images, but don't share the flash drive's contents.
+The script is stored in plain text on the flash drive, including the browser view password, so don't share the flash drive's contents.
+
+If you also update **private** images from GitHub with it, the script needs a GitHub token (classic) with only **read:packages**. Set `GITHUB_USER` in the script to your GitHub username, then save the token on the flash drive by running this in the Unraid terminal, pasting the token (nothing shows as you paste) and pressing Enter:
+
+```bash
+read -rs TOKEN && echo "$TOKEN" > /boot/config/drops-farmer-github-token && unset TOKEN && echo saved
+```
+
+The script logs in with it each time it runs. Without that file it skips the login, which is all public images need.
 
 #### Updating by hand
 
-Download the newest release, remove the old container, then run the `docker run` command from [step 3](#3-start-the-container) again:
+Download the newest release, remove the old container, then run the `docker run` command from [step 3](#2-start-the-container) again:
 
 ```bash
 docker pull ghcr.io/gvrxx/twitch-drops-farmer:latest

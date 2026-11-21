@@ -38,7 +38,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 16. **Docker sign-in.** When you're not logged in, the app closes its automated browser and opens a normal Chrome in the browser view, the same way `login.command` works on a Mac. It starts its own browser again once you close that window.
 17. **Versions and releases.** The app has a version number, shown on the dashboard. Pushing a `v<version>` tag runs the Release workflow: it checks the tag matches `package.json`, runs the tests, publishes a Docker image to `ghcr.io/gvrxx/twitch-drops-farmer` and creates a GitHub release from `CHANGELOG.md`.
 18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
-19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It logs in to GitHub with a token saved on the flash drive, then updates each app listed in it, and restarts only those with a new version.
+19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It updates each app listed in it, and restarts only those with a new version.
 20. **App icon.** A white drop on purple, served by the dashboard at `/icon.png`. It's the browser tab icon, and the update script points Unraid's icon label at it.
 
 ## What we learned
@@ -91,13 +91,11 @@ Twitch finds nothing while the last word is half-typed ("hollow kn"), even thoug
 
 ### Running on Unraid
 
-The repository is private, so its image is too. Unraid needs a classic GitHub token with only **read:packages** to download it; fine-grained tokens can't log in to ghcr.io. One token covers every image under the account.
-
-Unraid keeps `docker login` in memory, so it's lost on reboot. The update script avoids that by keeping the token in `/boot/config/drops-farmer-github-token` on the flash drive and logging in each time it runs.
+The repository started out private, and so did its image. Downloading a private image needs a classic GitHub token with only **read:packages**; fine-grained tokens can't log in to ghcr.io. Unraid keeps `docker login` in memory, so it's lost on reboot, which is why the update script can keep a token in `/boot/config/drops-farmer-github-token` on the flash drive and log in each time it runs. Since the repository and image went public, Drops Farmer needs no token, and the script only logs in when that file exists.
 
 Each app in the update script is one `app` entry: container name, image, then its `docker run` options. The script compares the running container's image with the newly downloaded one, and only recreates the container when they differ. Settings live in the app's data folder, so recreating it loses nothing.
 
-Unraid's container icon comes from the `net.unraid.docker.icon` label, which must be a web address Unraid can load. GitHub's addresses for a private repository need a login, so the dashboard serves the icon itself, and the update script fills in the server's own address when it starts the container. Unraid only re-reads a container's icon when you click **Check for Updates** in the Docker tab; until then it keeps showing a question mark, even though the label and address are correct.
+Unraid's container icon comes from the `net.unraid.docker.icon` label, which must be a web address Unraid can load. GitHub's addresses for a private repository need a login (the repository was private at the time), so the dashboard serves the icon itself, and the update script fills in the server's own address when it starts the container. Unraid only re-reads a container's icon when you click **Check for Updates** in the Docker tab; until then it keeps showing a question mark, even though the label and address are correct.
 
 ## Test results
 
@@ -127,7 +125,7 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
 - **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
 - **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again. On Docker it opens the sign-in window in the browser view by itself.
-- **Token expiry.** If the GitHub token for Unraid expires, the update script says so. Create a new one and save it to the same file on the flash drive.
+- **Token expiry.** Only matters if the update script also pulls private images. If that token expires, the script says so; create a new one and save it to the same file on the flash drive.
 - **Keeping up with Twitch.** Site changes can break campaign loading or claiming. Check **Activity** on the dashboard first.
 
 ## Picking this up later

@@ -3,8 +3,9 @@
 # For each app below it downloads the newest image and recreates the container
 # only if there's a new version. Data in each app's folders is kept.
 
-# A GitHub token (classic) with only read:packages, saved on the flash drive so
-# it survives reboots. One token covers every image under your GitHub account.
+# Only needed for private images: a GitHub token (classic) with only
+# read:packages, saved on the flash drive so it survives reboots. Public images,
+# such as Drops Farmer's, need no token; without this file the login is skipped.
 TOKEN_FILE='/boot/config/drops-farmer-github-token'
 GITHUB_USER='gvrxx'
 # This server's address on your network, for links Unraid shows (such as app icons).
@@ -31,10 +32,7 @@ apps() {
 failed=0
 
 login() {
-  if [ ! -s "$TOKEN_FILE" ]; then
-    echo "No token found at $TOKEN_FILE. Save your GitHub token there first (see the README)."
-    exit 1
-  fi
+  [ -s "$TOKEN_FILE" ] || return 0
   if ! docker login ghcr.io -u "$GITHUB_USER" --password-stdin < "$TOKEN_FILE" > /dev/null 2>&1; then
     echo "GitHub refused the token in $TOKEN_FILE. It may have expired; create a new one and save it there."
     exit 1
