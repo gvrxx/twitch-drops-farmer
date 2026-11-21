@@ -440,6 +440,7 @@ To update on Windows or macOS, download the new version's ZIP from its release a
 | Chrome or Edge keeps coming to the front | Check `minimizeBrowser` isn't `false`, and that you started the latest version. |
 | "Couldn't reach Twitch" warnings | The computer was asleep or the connection dropped. The app retries every 30 seconds and resumes by itself. |
 | `Host ... not allowed` on Docker | Open the dashboard by IP address, or add that hostname to `ALLOWED_HOSTS`. |
+| Unraid shows a question mark instead of the app icon | Click **Check for Updates** at the bottom of the Docker tab, then refresh the page. Unraid only re-reads a container's icon then. |
 | Docker: blank or crashing browser | Make sure the container was started with `--shm-size=1g`. |
 
 **Choose a browser.** Windows uses Edge by default, and macOS uses Chrome if it's installed. To use Google Chrome on Windows, run this in PowerShell from the project folder:
