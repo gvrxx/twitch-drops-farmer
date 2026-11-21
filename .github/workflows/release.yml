@@ -43,6 +43,10 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          # Build attestations record the whole GitHub push event, including the
+          # pusher's email address, so they're left out of the public image.
+          provenance: false
+          sbom: false
           tags: |
             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
             ${{ steps.version.outputs.image }}:latest
@@ -60,4 +64,9 @@ jobs:
             found' CHANGELOG.md > notes.md
           [ -s notes.md ] || { echo "No CHANGELOG.md section for ${{ steps.version.outputs.version }}"; exit 1; }
           printf '\n**Docker image:** `%s:%s`\n' "${{ steps.version.outputs.image }}" "${{ steps.version.outputs.version }}" >> notes.md
-          gh release create "$GITHUB_REF_NAME" --title "Drops Farmer $GITHUB_REF_NAME" --notes-file notes.md
+          # Re-publishing a version (after moving its tag) updates the existing release.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "Drops Farmer $GITHUB_REF_NAME" --notes-file notes.md
+          fi
