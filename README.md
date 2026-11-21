@@ -31,7 +31,7 @@ Earns Twitch Drops for the games you pick. It plays one eligible stream at a tim
 
 **Partly blocked:** Twitch currently refuses the full campaign list in automated browsers, so only campaigns already started in your inventory can be farmed (see the note at the top).
 
-The full cycle worked on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. Windows and Docker need more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
+The full cycle worked on macOS with a real Twitch account: sign in, find a stream, earn minutes, and claim a drop. It also runs on Unraid with Docker. Windows needs more testing. See the [project history](docs/PROJECT-HISTORY.md) for details.
 
 | Part | Status |
 | --- | --- |
@@ -484,16 +484,19 @@ Twitch changes its site often, and the farmer relies on the structure of its pag
    - **macOS:** `~/Library/Caches/ms-playwright`
    - **Linux:** `~/.cache/ms-playwright`
 
-On Docker, run the command below, then delete `/mnt/user/appdata/twitch-drops-farmer` and `/mnt/user/appdata/twitch-drops-farmer-src`:
+On Docker, run the command below, then delete `/mnt/user/appdata/twitch-drops-farmer`, and `/mnt/user/appdata/twitch-drops-farmer-src` if you built the image yourself. If you set up one-click updates, also remove the Drops Farmer entry from the **Update apps** script.
 
 ```bash
-docker rm -f twitch-drops-farmer && docker rmi twitch-drops-farmer
+docker rm -f twitch-drops-farmer && docker rmi ghcr.io/gvrxx/twitch-drops-farmer:latest
 ```
 
 ## Development
 
 To publish a new version: change `version` in `package.json`, add a section for it at the top of `CHANGELOG.md`, commit, then tag and push it, for example `git tag v1.1.0` and `git push origin v1.1.0`. The Release workflow checks the tag matches `package.json`, runs the tests, publishes the Docker image and creates the GitHub release with that CHANGELOG section as its notes.
 
+To publish a version again from newer code, for example after a fix to the workflow, move its tag and push it with `--force`. The Release workflow then rebuilds the image and updates the existing release's notes.
+
+The repository is public, so keep personal details out of it. Commit with GitHub's noreply address (`git config user.email <id>+<username>@users.noreply.github.com`), because commit authors are public. Docker images are built without build attestations, because those record the GitHub push event, which includes the pusher's email address.
 
 ```bash
 npm install
@@ -509,4 +512,4 @@ npm run smoke
 
 `npm test` runs the unit tests for the parser and dormant mode. `npm run smoke` starts the app with a throwaway profile and checks that it reaches the login step.
 
-CI runs both on macOS, Windows and Linux on every push. It also builds the Docker image and checks that the container reaches the login step.
+CI runs both on macOS, Windows and Linux on every push. It also builds the Docker image and checks that the container reaches the login step and that the sign-in window opens and reopens.
