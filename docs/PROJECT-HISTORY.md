@@ -40,6 +40,7 @@ Early on we chose a real browser over a lighter tool that fakes watch events thr
 18. **Unraid from the published image.** Unraid downloads the image instead of building it. The image carries Unraid's WebUI label, so the container's menu opens the dashboard.
 19. **One-click updates for all apps.** `docker/unraid-update-all.sh` runs from Unraid's User Scripts plugin, daily or with **Run Script**. It updates each app listed in it, and restarts only those with a new version.
 20. **App icon.** A white drop on purple, served by the dashboard at `/icon.png`. It's the browser tab icon, and the update script points Unraid's icon label at it.
+21. **Public repository (Nov 21, 2026).** The repository and its Docker image are public, so installing and updating need no GitHub account or token. Before that, the history was checked for personal details and rewritten so commits and tags use GitHub's private noreply email.
 
 ## What we learned
 
@@ -96,6 +97,12 @@ The repository started out private, and so did its image. Downloading a private 
 Each app in the update script is one `app` entry: container name, image, then its `docker run` options. The script compares the running container's image with the newly downloaded one, and only recreates the container when they differ. Settings live in the app's data folder, so recreating it loses nothing.
 
 Unraid's container icon comes from the `net.unraid.docker.icon` label, which must be a web address Unraid can load. GitHub's addresses for a private repository need a login (the repository was private at the time), so the dashboard serves the icon itself, and the update script fills in the server's own address when it starts the container. Unraid only re-reads a container's icon when you click **Check for Updates** in the Docker tab; until then it keeps showing a question mark, even though the label and address are correct.
+
+### Going public
+
+The repository and its Docker image have separate visibility settings. Making the repository public leaves the image private, and the image's visibility can only be changed on its package settings page on GitHub, not through GitHub's API.
+
+Commit and tag authors are public along with the code, so they use GitHub's noreply address (`<id>+gvrxx@users.noreply.github.com`). Keep `git config user.email` set to it. The history was rewritten to replace the earlier address, which changed every commit hash. While force-pushing the rewritten tags, the Release workflow was turned off so it wouldn't publish old versions again as `latest`.
 
 ## Test results
 
