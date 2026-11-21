@@ -28,4 +28,6 @@ ENV DATA_DIR=/data \
     BROWSER_VIEW_PORT=6080
 VOLUME /data
 EXPOSE 8411 6080
+# Unraid reads this to add "WebUI" to the container's menu in its Docker tab.
+LABEL net.unraid.docker.webui="http://[IP]:[PORT:8411]/"
 ENTRYPOINT ["/entrypoint.sh"]

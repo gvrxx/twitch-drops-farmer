@@ -2,6 +2,11 @@
 
 Each version is published on the [Releases page](https://github.com/gvrxx/twitch-drops-farmer/releases), with a Docker image tagged the same. The version the app is running shows next to its name on the dashboard.
 
+## 1.0.1 (2026-11-21)
+
+- Unraid: the container's menu in the Docker tab now has **WebUI**, which opens the dashboard.
+- Unraid: one-click updates with the User Scripts plugin (see the README).
+
 ## 1.0.0 (2026-11-21)
 
 The first numbered release, covering everything built so far.
