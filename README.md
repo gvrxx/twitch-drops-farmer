@@ -41,7 +41,7 @@ The full cycle worked on macOS with a real Twitch account: sign in, find a strea
 | Earning watch time and auto-claiming drops | Works on macOS |
 | Dormant mode and adding games with no event | Works on macOS. A full 24-hour wait is covered by automated tests, not waited out live. |
 | Windows | Starts and reaches sign-in in automated tests. Not tried with a real account. |
-| Docker | Builds and starts in automated tests, and the sign-in window opens and reopens as it should. Signing in to a real account and running on Unraid haven't been tried. |
+| Docker | Runs on Unraid from the published image, and signing in through the browser view works with a real account (Nov 21, 2026). Farming there hasn't been possible yet because of the Twitch block. |
 | Stream reload for long runs | Works on macOS |
 | Minimized browser that doesn't take focus | Works on macOS. The stream keeps playing and earning while minimized. Not tried on Windows. |
 | Surviving the computer sleeping | Works on macOS. Nothing is earned while asleep, and it picks up again on wake. |
@@ -187,7 +187,7 @@ Sign in with Google Chrome or Chromium installed on your system. Stop the app, r
 
 ## Install on Unraid (Docker)
 
-> **Like the other systems, it can't farm while Twitch blocks the campaign list** (see the note at the top). Signing in through the browser view works the same way as on a desktop, so it's ready for when the block lifts. It hasn't been tried on real Unraid yet.
+> **Like the other systems, it can't farm while Twitch blocks the campaign list** (see the note at the top). Signing in through the browser view works on Unraid, so it's ready for when the block lifts.
 
 The container runs Chrome on a virtual screen, so Unraid doesn't need a monitor. It uses two ports:
 

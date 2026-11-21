@@ -107,7 +107,7 @@ CI runs unit tests and a startup test on macOS, Windows and Linux on every push.
 - **Twitch blocks the campaign list (Nov 14, 2026).** The project is paused because of this; see [Paused](#paused). A normal browser still shows the campaigns, so the block is aimed at automated browsers.
 
 - **Windows with a real account.** It starts and reaches the sign-in step in CI, but `login.bat`, Edge sign-in and real farming haven't been tried.
-- **Docker sign-in on real Unraid.** The browser view now opens a normal Chrome for signing in, and CI checks that it opens and reopens as it should. Signing in to a real account in the container hasn't been tried yet.
+- **Farming on Unraid.** On Nov 21, 2026 the published image ran on real Unraid and signing in through the browser view worked with a real account. It then showed **Blocked by Twitch**, like the Mac, so farming there is still untried.
 - **Unraid.** The image builds and starts in CI but hasn't run on real Unraid.
 - **Running for days.** The 4-hour stream reload is in place, but the app hasn't been left running for days yet, so memory use over that time is unknown.
 - **Session expiry.** If the saved login expires, the app waits at **Login needed** until you run the sign-in step again.
